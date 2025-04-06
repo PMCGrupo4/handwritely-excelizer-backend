@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { supabase } from '../config/supabase';
 import { StorageService } from '../services/storage.service';
+import { OcrService } from '../services/ocr.service';
 import Tesseract from 'tesseract.js';
 
 interface CommandItem {
@@ -18,9 +19,11 @@ interface CommandTableRow {
 
 export class CommandController {
   private storageService: StorageService;
+  private ocrService: OcrService;
 
   constructor() {
     this.storageService = new StorageService();
+    this.ocrService = new OcrService();
   }
 
   /**
@@ -180,5 +183,45 @@ export class CommandController {
     }
 
     return items;
+  }
+
+  /**
+   * Process an image with OCR
+   */
+  async processImageOcr(req: Request, res: Response) {
+    try {
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      if (!req.file || !req.file.buffer) {
+        return res.status(400).json({ error: 'No image provided' });
+      }
+
+      // Process the image with Document AI
+      const document = await this.ocrService.processImage(req.file.buffer);
+      
+      // Extract text and do formatting
+      const text = this.ocrService.extractText(document);
+      const formattedResults = this.ocrService.formatOcrResults(text, document);
+      
+      // Add success flag and user information
+      return res.json({
+        success: true,
+        data: {
+          ...formattedResults,
+          userId: userId
+        }
+      });
+    } catch (error) {
+      console.error('Error processing image with OCR:', error);
+      return res.status(500).json({ 
+        success: false,
+        error: 'Failed to process image with OCR',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
   }
 } 
