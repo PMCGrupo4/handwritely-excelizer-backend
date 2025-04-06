@@ -7,7 +7,10 @@ const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 const commandController = new CommandController();
 
-// Apply auth middleware to all routes
+// OCR route - without auth for testing purposes
+router.post('/ocr', upload.single('image'), commandController.processImageOcr.bind(commandController));
+
+// Apply auth middleware to all other routes
 router.use(authMiddleware);
 
 // Get all commands for a user
@@ -18,8 +21,5 @@ router.post('/', upload.single('image'), commandController.createCommand);
 
 // Delete a command
 router.delete('/:id', commandController.deleteCommand);
-
-// OCR route
-router.post('/ocr', upload.single('image'), commandController.processImageOcr.bind(commandController));
 
 export const commandRoutes = router; 
