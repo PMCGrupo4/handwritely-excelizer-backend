@@ -1,0 +1,22 @@
+import { Router } from 'express';
+import multer from 'multer';
+import { CommandController } from '../controllers/command.controller';
+import { authMiddleware } from '../middleware/auth.middleware';
+
+const router = Router();
+const upload = multer({ storage: multer.memoryStorage() });
+const commandController = new CommandController();
+
+// Apply auth middleware to all routes
+router.use(authMiddleware);
+
+// Get all commands for a user
+router.get('/:userId', commandController.getUserCommands);
+
+// Create a new command
+router.post('/', upload.single('image'), commandController.createCommand);
+
+// Delete a command
+router.delete('/:id', commandController.deleteCommand);
+
+export const commandRoutes = router; 
