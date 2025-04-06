@@ -19,4 +19,7 @@ router.post('/', upload.single('image'), commandController.createCommand);
 // Delete a command
 router.delete('/:id', commandController.deleteCommand);
 
+// OCR route
+router.post('/ocr', upload.single('image'), commandController.processImageOcr.bind(commandController));
+
 export const commandRoutes = router; 
