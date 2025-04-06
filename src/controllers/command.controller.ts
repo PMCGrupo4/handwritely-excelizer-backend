@@ -190,12 +190,8 @@ export class CommandController {
    */
   async processImageOcr(req: Request, res: Response) {
     try {
-      const userId = req.user?.id;
+      // Eliminamos la verificación de userId ya que esta ruta es pública para pruebas
       
-      if (!userId) {
-        return res.status(401).json({ error: 'Unauthorized' });
-      }
-
       if (!req.file || !req.file.buffer) {
         return res.status(400).json({ error: 'No image provided' });
       }
@@ -207,12 +203,12 @@ export class CommandController {
       const text = this.ocrService.extractText(document);
       const formattedResults = this.ocrService.formatOcrResults(text, document);
       
-      // Add success flag and user information
+      // Add success flag and demo user information
       return res.json({
         success: true,
         data: {
           ...formattedResults,
-          userId: userId
+          userId: 'demo-user' // Usamos un usuario demo fijo
         }
       });
     } catch (error) {
