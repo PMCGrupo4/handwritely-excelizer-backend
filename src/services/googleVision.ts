@@ -1,9 +1,21 @@
 import { ImageAnnotatorClient } from '@google-cloud/vision';
 import path from 'path';
+import dotenv from 'dotenv';
 
-// Crea un cliente de Vision API
+dotenv.config();
+
+// Parse the credentials from environment variable
+let credentials;
+try {
+  credentials = JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS || '{}');
+} catch (error) {
+  console.error('Error parsing GOOGLE_CLOUD_CREDENTIALS:', error);
+  throw new Error('Invalid GOOGLE_CLOUD_CREDENTIALS format');
+}
+
+// Create Vision API client with credentials
 const client = new ImageAnnotatorClient({
-  keyFilename: path.join(__dirname, '../../credentials/google-cloud.json'),
+  credentials
 });
 
 export async function detectText(imageBuffer: Buffer): Promise<string> {

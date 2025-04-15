@@ -1,9 +1,14 @@
 [build]
-  command = "npm install"
+  command = "npm install && npm run build:functions"
   functions = "functions"
-  publish = "."
+  publish = "public"
 
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/health"
+  to = "/.netlify/functions/health"
   status = 200 

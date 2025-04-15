@@ -4,6 +4,9 @@ import { GoogleAuth } from 'google-auth-library';
 import { protos } from '@google-cloud/documentai';
 import * as path from 'path';
 import * as fs from 'fs';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 type Document = protos.google.cloud.documentai.v1.IDocument;
 type Entity = protos.google.cloud.documentai.v1.Document.IEntity;
@@ -22,43 +25,20 @@ export class OcrService {
     this.location = process.env.GOOGLE_PROCESSOR_LOCATION || 'us';
     this.processorId = process.env.GOOGLE_PROCESSOR_ID;
     
-    // Get credentials file path from environment variable
-    const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-    
-    let authOptions = {};
-    
-    if (credentialsPath) {
-      // If path is relative to the project root, resolve it
-      if (credentialsPath.startsWith('./') || credentialsPath.startsWith('../')) {
-        const resolvedPath = path.resolve(process.cwd(), credentialsPath);
-        console.log(`Using Google credentials from: ${resolvedPath}`);
-        
-        if (fs.existsSync(resolvedPath)) {
-          authOptions = {
-            keyFilename: resolvedPath,
-            scopes: ['https://www.googleapis.com/auth/cloud-platform']
-          };
-        } else {
-          console.error(`Credentials file not found at: ${resolvedPath}`);
-        }
-      } else {
-        // Use the path as-is
-        authOptions = {
-          keyFilename: credentialsPath,
-          scopes: ['https://www.googleapis.com/auth/cloud-platform']
-        };
-      }
-    } else {
-      // Default authentication (uses GOOGLE_APPLICATION_CREDENTIALS env var implicitly)
-      authOptions = {
-        auth: new GoogleAuth({
-          scopes: ['https://www.googleapis.com/auth/cloud-platform']
-        })
-      };
+    // Parse credentials from environment variable
+    let credentials;
+    try {
+      credentials = JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS || '{}');
+    } catch (error) {
+      console.error('Error parsing GOOGLE_CLOUD_CREDENTIALS:', error);
+      throw new Error('Invalid GOOGLE_CLOUD_CREDENTIALS format');
     }
     
-    // Initialize the client
-    this.client = new DocumentProcessorServiceClient(authOptions);
+    // Initialize the client with credentials
+    this.client = new DocumentProcessorServiceClient({
+      credentials,
+      scopes: ['https://www.googleapis.com/auth/cloud-platform']
+    });
     
     console.log('OCR Service initialized with project:', this.projectId);
   }
