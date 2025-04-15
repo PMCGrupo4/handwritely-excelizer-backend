@@ -2,14 +2,25 @@
   "compilerOptions": {
     "target": "es2018",
     "module": "commonjs",
-    "outDir": "functions",
-    "rootDir": "src/functions",
+    "lib": ["es2018", "esnext.asynciterable"],
+    "declaration": true,
     "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": false,
+    "inlineSourceMap": true,
+    "inlineSources": true,
+    "experimentalDecorators": true,
+    "strictPropertyInitialization": false,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true
+    "outDir": "functions"
   },
   "include": ["src/functions/**/*"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "dist"]
 } 

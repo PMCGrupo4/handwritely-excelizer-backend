@@ -11,4 +11,9 @@
 [[redirects]]
   from = "/health"
   to = "/.netlify/functions/health"
+  status = 200
+
+[[redirects]]
+  from = "/api/commands/ocr"
+  to = "/.netlify/functions/ocr"
   status = 200 

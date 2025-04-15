@@ -134,3 +134,116 @@ El backend utiliza Supabase Storage para almacenar las imágenes de los recibos.
 ## Licencia
 
 MIT 
+
+# HandSheet Backend
+
+Backend para la aplicación HandSheet - Convertidor de escritura a Excel.
+
+## Configuración para Netlify
+
+### Requisitos previos
+
+1. Cuenta en Netlify
+2. Cuenta en Google Cloud con la API de Vision habilitada
+3. Credenciales de Google Cloud en formato JSON
+
+### Pasos para el despliegue
+
+1. **Preparar las credenciales de Google Cloud**
+   - Descarga tus credenciales de Google Cloud en formato JSON
+   - Convierte el archivo JSON a una cadena de texto (puedes usar herramientas online o comandos como `cat credentials.json | jq -c`)
+   - Guarda esta cadena para usarla como variable de entorno
+
+2. **Configurar variables de entorno en Netlify**
+   - Ve a la configuración de tu sitio en Netlify
+   - En la sección "Build & deploy" > "Environment variables", agrega:
+     - `GOOGLE_CLOUD_CREDENTIALS`: La cadena JSON de tus credenciales de Google Cloud
+     - `SUPABASE_URL`: Tu URL de Supabase
+     - `SUPABASE_ANON_KEY`: Tu clave anónima de Supabase
+     - `CORS_ORIGIN`: URL de tu frontend (ej: `https://handsheetmain.netlify.app`)
+
+3. **Desplegar el backend**
+   - Conecta tu repositorio a Netlify
+   - Configura el comando de build: `npm install && npm run build:functions`
+   - Configura el directorio de publicación: `public`
+   - Configura el directorio de funciones: `functions`
+
+4. **Verificar el despliegue**
+   - Una vez desplegado, verifica que la función de salud esté funcionando:
+     - Visita: `https://tu-backend.netlify.app/.netlify/functions/health`
+   - Verifica que la función de OCR esté funcionando:
+     - Visita: `https://tu-backend.netlify.app/.netlify/functions/ocr`
+
+## Desarrollo local
+
+```bash
+# Instalar dependencias
+npm install
+
+# Ejecutar en modo desarrollo
+npm run dev
+
+# Construir para producción
+npm run build
+```
+
+## Estructura del proyecto
+
+```
+handwritely-excelizer-backend/
+├── src/
+│   ├── functions/       # Funciones de Netlify
+│   ├── services/        # Servicios (Google Vision, etc.)
+│   ├── controllers/     # Controladores
+│   ├── routes/          # Rutas
+│   ├── middleware/      # Middleware
+│   └── config/          # Configuración
+├── public/              # Archivos estáticos
+├── functions/           # Funciones compiladas
+├── .env                 # Variables de entorno
+├── netlify.toml         # Configuración de Netlify
+└── package.json         # Dependencias y scripts
+```
+
+## API Endpoints
+
+### OCR
+
+- **URL**: `/api/commands/ocr`
+- **Método**: `POST`
+- **Descripción**: Procesa una imagen y extrae texto usando Google Vision API
+- **Formato**: `multipart/form-data`
+- **Parámetros**:
+  - `image`: Archivo de imagen (JPEG, PNG)
+- **Respuesta**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "rawText": "Texto extraído de la imagen",
+      "receipt": {
+        "items": [
+          {
+            "name": "Producto",
+            "quantity": 1,
+            "price": 1000,
+            "subtotal": 1000
+          }
+        ]
+      }
+    }
+  }
+  ```
+
+### Health Check
+
+- **URL**: `/health`
+- **Método**: `GET`
+- **Descripción**: Verifica que el backend esté funcionando
+- **Respuesta**:
+  ```json
+  {
+    "status": "ok",
+    "timestamp": "2023-04-15T12:00:00Z"
+  }
+  ``` 
