@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { supabase } from '../config/supabase';
+import { supabase } from '../config/supabase.config';
 
 // Extend Express Request type to include user
 declare global {
@@ -13,11 +13,7 @@ declare global {
   }
 }
 
-export const authMiddleware = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   try {
     // Get the authorization header
     const authHeader = req.headers.authorization;
@@ -25,30 +21,28 @@ export const authMiddleware = async (
     if (!authHeader) {
       return res.status(401).json({ error: 'No authorization header' });
     }
-
+    
     // Extract the token
     const token = authHeader.split(' ')[1];
     
     if (!token) {
       return res.status(401).json({ error: 'No token provided' });
     }
-
+    
     // Verify the token with Supabase
     const { data: { user }, error } = await supabase.auth.getUser(token);
     
     if (error || !user) {
       return res.status(401).json({ error: 'Invalid token' });
     }
-
-    // Add user to request object
-    req.user = {
-      id: user.id,
-      email: user.email || '',
-    };
-
+    
+    // Add the user to the request object
+    (req as any).user = user;
+    
+    // Continue to the next middleware or route handler
     next();
   } catch (error) {
     console.error('Auth middleware error:', error);
-    res.status(500).json({ error: 'Authentication error' });
+    res.status(500).json({ error: 'Internal server error' });
   }
 }; 

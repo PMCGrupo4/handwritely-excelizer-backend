@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
-import { supabase } from '../config/supabase';
+import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '../config/supabase.config';
 import { StorageService } from '../services/storage.service';
-import { OcrService } from '../services/ocr.service';
+import { OcrService, OcrResult } from '../services/ocr.service';
 import Tesseract from 'tesseract.js';
 
 interface CommandItem {
@@ -17,13 +18,16 @@ interface CommandTableRow {
   total: number;
 }
 
+const ocrService = new OcrService();
+
 export class CommandController {
   private storageService: StorageService;
-  private ocrService: OcrService;
 
   constructor() {
-    this.storageService = new StorageService();
-    this.ocrService = new OcrService();
+    this.storageService = new StorageService({
+      bucketName: process.env.GOOGLE_STORAGE_BUCKET || '',
+      projectId: process.env.GOOGLE_PROJECT_ID || ''
+    });
   }
 
   /**
@@ -31,10 +35,10 @@ export class CommandController {
    */
   async getUserCommands(req: Request, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = (req as any).user.id;
       
       if (!userId) {
-        return res.status(401).json({ error: 'Unauthorized' });
+        return res.status(401).json({ error: 'User not authenticated' });
       }
 
       const { data, error } = await supabase
@@ -47,8 +51,8 @@ export class CommandController {
 
       return res.json(data);
     } catch (error) {
-      console.error('Error getting user commands:', error);
-      return res.status(500).json({ error: 'Failed to get commands' });
+      console.error('Error fetching commands:', error);
+      return res.status(500).json({ error: 'Failed to fetch commands' });
     }
   }
 
@@ -57,56 +61,76 @@ export class CommandController {
    */
   async createCommand(req: Request, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = (req as any).user.id;
       
       if (!userId) {
-        return res.status(401).json({ error: 'Unauthorized' });
+        return res.status(401).json({ error: 'User not authenticated' });
       }
 
       if (!req.file) {
         return res.status(400).json({ error: 'No image file provided' });
       }
 
-      // Upload image to Supabase Storage
-      const imageUrl = await this.storageService.uploadImage(req.file.buffer, userId);
-
-      // Process image with Tesseract OCR
-      const { data: { text } } = await Tesseract.recognize(
-        req.file.buffer,
-        'eng',
-        { logger: m => console.log(m) }
-      );
-
-      // Parse the OCR text into command items
-      const items = this.parseCommandText(text);
-
-      // Calculate totals
-      const rows: CommandTableRow[] = items.map(item => ({
-        ...item,
-        total: item.quantity * item.price
-      }));
-
-      const total = rows.reduce((sum, row) => sum + row.total, 0);
-
-      // Save command to Supabase
-      const { data, error } = await supabase
+      // Generate a unique ID for the command
+      const commandId = uuidv4();
+      
+      // Upload the image to Supabase Storage
+      const fileExtension = req.file.originalname.split('.').pop();
+      const filePath = `${userId}/${commandId}.${fileExtension}`;
+      
+      // Convert Buffer to Blob for Supabase
+      const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('receipt-images')
+        .upload(filePath, blob, {
+          contentType: req.file.mimetype,
+          upsert: false
+        });
+      
+      if (uploadError) {
+        console.error('Error uploading image:', uploadError);
+        return res.status(500).json({ error: 'Failed to upload image' });
+      }
+      
+      // Get the public URL of the uploaded image
+      const { data: { publicUrl } } = supabase.storage
+        .from('receipt-images')
+        .getPublicUrl(filePath);
+      
+      // Process the image with OCR
+      const document = await ocrService.processImage(req.file.buffer);
+      const text = ocrService.extractText(document);
+      const ocrResult = ocrService.formatOcrResults(text, document);
+      
+      // Save the command to the database
+      const { data: commandData, error: commandError } = await supabase
         .from('commands')
         .insert({
+          id: commandId,
           user_id: userId,
-          image_url: imageUrl,
-          items: rows,
-          total,
+          image_url: publicUrl,
+          items: ocrResult.receipt?.items || [],
+          total: ocrResult.receipt?.total || 0,
           status: 'completed'
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      return res.status(201).json(data);
+        });
+      
+      if (commandError) {
+        console.error('Error saving command:', commandError);
+        return res.status(500).json({ error: 'Failed to save command' });
+      }
+      
+      // Return the command data
+      res.status(201).json({
+        id: commandId,
+        image_url: publicUrl,
+        items: ocrResult.receipt?.items || [],
+        total: ocrResult.receipt?.total || 0,
+        status: 'completed'
+      });
     } catch (error) {
       console.error('Error creating command:', error);
-      return res.status(500).json({ error: 'Failed to create command' });
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
 
@@ -115,74 +139,60 @@ export class CommandController {
    */
   async deleteCommand(req: Request, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = (req as any).user.id;
       
       if (!userId) {
-        return res.status(401).json({ error: 'Unauthorized' });
+        return res.status(401).json({ error: 'User not authenticated' });
       }
 
-      const { id } = req.params;
+      const commandId = req.params.id;
+      
+      if (!commandId) {
+        return res.status(400).json({ error: 'Command ID is required' });
+      }
 
-      // Check if command exists and belongs to user
+      // Get the command to check if it belongs to the user
       const { data: command, error: fetchError } = await supabase
         .from('commands')
-        .select('*')
-        .eq('id', id)
+        .select('image_url')
+        .eq('id', commandId)
         .single();
-
-      if (fetchError) throw fetchError;
-
-      if (!command) {
+      
+      if (fetchError || !command) {
         return res.status(404).json({ error: 'Command not found' });
       }
-
-      if (command.user_id !== userId) {
-        return res.status(403).json({ error: 'Not authorized to delete this command' });
-      }
-
-      // Delete image from storage if it exists
-      if (command.image_url) {
-        await this.storageService.deleteImage(command.image_url);
-      }
-
-      // Delete command from database
+      
+      // Delete the command from the database
       const { error: deleteError } = await supabase
         .from('commands')
         .delete()
-        .eq('id', id);
-
-      if (deleteError) throw deleteError;
-
-      return res.status(204).send();
+        .eq('id', commandId);
+      
+      if (deleteError) {
+        console.error('Error deleting command:', deleteError);
+        return res.status(500).json({ error: 'Failed to delete command' });
+      }
+      
+      // Delete the image from storage if it exists
+      if (command.image_url) {
+        const filePath = command.image_url.split('/').pop();
+        if (filePath) {
+          const { error: storageError } = await supabase.storage
+            .from('receipt-images')
+            .remove([`${userId}/${filePath}`]);
+          
+          if (storageError) {
+            console.error('Error deleting image:', storageError);
+          }
+        }
+      }
+      
+      // Return success
+      res.status(200).json({ message: 'Command deleted successfully' });
     } catch (error) {
       console.error('Error deleting command:', error);
-      return res.status(500).json({ error: 'Failed to delete command' });
+      res.status(500).json({ error: 'Internal server error' });
     }
-  }
-
-  /**
-   * Parse OCR text into command items
-   */
-  private parseCommandText(text: string): CommandItem[] {
-    // This is a simplified parser - you would need to implement more sophisticated
-    // parsing logic based on your specific receipt format
-    const lines = text.split('\n').filter(line => line.trim());
-    const items: CommandItem[] = [];
-
-    for (const line of lines) {
-      // Simple regex to extract product, quantity, and price
-      // This is just an example and would need to be adapted to your specific format
-      const match = line.match(/(.+?)\s+(\d+)\s+(\d+\.\d+)/);
-      if (match) {
-        items.push({
-          product: match[1].trim(),
-          quantity: parseInt(match[2]),
-          price: parseFloat(match[3])
-        });
-      }
-    }
-
-    return items;
   }
 
   /**
@@ -197,11 +207,11 @@ export class CommandController {
       }
 
       // Process the image with Document AI
-      const document = await this.ocrService.processImage(req.file.buffer);
+      const document = await ocrService.processImage(req.file.buffer);
       
       // Extract text and do formatting
-      const text = this.ocrService.extractText(document);
-      const formattedResults = this.ocrService.formatOcrResults(text, document);
+      const text = ocrService.extractText(document);
+      const formattedResults = ocrService.formatOcrResults(text, document);
       
       // Add success flag and demo user information
       return res.json({

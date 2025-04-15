@@ -11,6 +11,36 @@ dotenv.config();
 type Document = protos.google.cloud.documentai.v1.IDocument;
 type Entity = protos.google.cloud.documentai.v1.Document.IEntity;
 
+export interface OcrResult {
+  receipt?: {
+    items: Array<{
+      name: string;
+      price: number;
+      quantity: number;
+      subtotal: number;
+    }>;
+    total: number;
+    currency: string;
+    date: string;
+    merchant: {
+      name: string;
+    };
+  };
+  metadata: {
+    confidence: number;
+    pages: Array<{
+      width: number;
+      height: number;
+      pageNumber: number;
+    }>;
+    processing: {
+      processor: string;
+      timestamp: string;
+    };
+  };
+  rawText: string;
+}
+
 /**
  * OCR Service using Google Document AI
  */
@@ -28,7 +58,18 @@ export class OcrService {
     // Parse credentials from environment variable
     let credentials;
     try {
-      credentials = JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS || '{}');
+      // Primero intenta leer desde la variable de entorno
+      if (process.env.GOOGLE_CLOUD_CREDENTIALS) {
+        credentials = JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS);
+      } else {
+        // Si no está en la variable de entorno, intenta leer desde el archivo
+        const credentialsPath = path.join(process.cwd(), 'credentials', 'google-cloud-credentials.json');
+        if (fs.existsSync(credentialsPath)) {
+          credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
+        } else {
+          throw new Error('No se encontraron las credenciales de Google Cloud');
+        }
+      }
     } catch (error) {
       console.error('Error parsing GOOGLE_CLOUD_CREDENTIALS:', error);
       throw new Error('Invalid GOOGLE_CLOUD_CREDENTIALS format');
@@ -296,7 +337,7 @@ export class OcrService {
     const total = itemsWithSubtotals.reduce((sum, item) => sum + item.subtotal, 0);
     
     // Get document pages and dimensions if available
-    const pages = document.pages?.map(page => ({
+    const pages = document.pages?.map((page: any) => ({
       width: page.dimension?.width || 0,
       height: page.dimension?.height || 0,
       pageNumber: page.pageNumber || 1
