@@ -276,57 +276,41 @@ export class OcrService {
   }
 
   /**
-   * Format OCR results into a standardized structure
-   * @param {string} text - The raw text from OCR
-   * @param {Document} document - The original document
-   * @returns {object} Formatted OCR results
+   * Improve price and quantity detection
+   * @param {string} text - The text to process
+   * @returns {string} The processed text with improved number detection
+   */
+  private improveNumberDetection(text: string): string {
+    // Replace common OCR mistakes in numbers
+    return text
+      .replace(/[oO]/g, '0')  // Replace 'o' with '0'
+      .replace(/[lI]/g, '1')  // Replace 'l' or 'I' with '1'
+      .replace(/[sS]/g, '5')  // Replace 's' with '5'
+      .replace(/[gG]/g, '6')  // Replace 'g' with '6'
+      .replace(/[bB]/g, '8'); // Replace 'b' with '8'
+  }
+
+  /**
+   * Format OCR results with improved number detection
+   * @param {string} text - The extracted text
+   * @param {Document} document - The processed document
+   * @returns {Object} Formatted results
    */
   formatOcrResults(text: string, document: Document) {
-    // Extract products and prices
-    const items = this.extractProductsAndPrices(text);
+    // Improve number detection in the text
+    const improvedText = this.improveNumberDetection(text);
     
-    // Calculate subtotals for each item and the overall total
-    const itemsWithSubtotals = items.map(item => ({
-      name: item.product,
-      price: item.price,
-      quantity: item.quantity,
-      subtotal: item.price * item.quantity
-    }));
+    // Extract products and prices with improved text
+    const products = this.extractProductsAndPrices(improvedText);
     
-    const total = itemsWithSubtotals.reduce((sum, item) => sum + item.subtotal, 0);
+    // Extract merchant information
+    const merchantInfo = this.extractMerchantInfo(improvedText);
     
-    // Get document pages and dimensions if available
-    const pages = document.pages?.map(page => ({
-      width: page.dimension?.width || 0,
-      height: page.dimension?.height || 0,
-      pageNumber: page.pageNumber || 1
-    })) || [];
-    
-    // Get confidence score if available - simplify to avoid type errors
-    let textConfidence = 0;
-    if (document.textChanges && document.textChanges.length > 0) {
-      // Use any available confidence metrics, or default to 0.95 for Google Document AI
-      textConfidence = 0.95;
-    }
-    
-    // Format the response
     return {
-      receipt: {
-        items: itemsWithSubtotals,
-        total: total,
-        currency: 'COP', // Default, you could make this configurable
-        date: new Date().toISOString(),
-        merchant: this.extractMerchantInfo(text) // Additional helper method
-      },
-      metadata: {
-        confidence: textConfidence,
-        pages: pages,
-        processing: {
-          processor: process.env.GOOGLE_PROCESSOR_ID,
-          timestamp: new Date().toISOString()
-        }
-      },
-      rawText: text
+      text: improvedText,
+      products,
+      merchantInfo,
+      confidence: document.textChanges && document.textChanges.length > 0 ? 0.95 : 0
     };
   }
   
