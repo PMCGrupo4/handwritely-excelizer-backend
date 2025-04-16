@@ -89,7 +89,7 @@ export class CommandController {
       const total = rows.reduce((sum, row) => sum + row.total, 0);
 
       // Save command to Supabase
-      const { data, error } = await supabase
+      const { data: insertData, error: insertError } = await supabase
         .from('commands')
         .insert({
           user_id: userId,
@@ -97,8 +97,15 @@ export class CommandController {
           items: rows,
           total,
           status: 'completed'
-        })
-        .select()
+        });
+
+      if (insertError) throw insertError;
+      
+      // Get the inserted command
+      const { data, error } = await supabase
+        .from('commands')
+        .select('*')
+        .eq('id', insertData[0].id)
         .single();
 
       if (error) throw error;
