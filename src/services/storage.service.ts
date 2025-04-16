@@ -13,10 +13,13 @@ export class StorageService {
       // Generate a unique filename
       const filename = `${userId}/${uuidv4()}.jpg`;
       
+      // Convert Buffer to Blob
+      const blob = new Blob([buffer], { type: 'image/jpeg' });
+      
       // Upload the file to Supabase Storage
       const { data, error } = await supabase.storage
         .from('receipt-images')
-        .upload(filename, buffer, {
+        .upload(filename, blob, {
           contentType: 'image/jpeg',
           upsert: false,
         });

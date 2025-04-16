@@ -10,7 +10,7 @@ export async function initializeStorage() {
     
     if (listError) throw listError;
     
-    const bucketExists = buckets?.some(bucket => bucket.name === 'receipt-images') || false;
+    const bucketExists = buckets?.some((bucket: { name: string }) => bucket.name === 'receipt-images') || false;
     
     if (!bucketExists) {
       // Create bucket if it doesn't exist
