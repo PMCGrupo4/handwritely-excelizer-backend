@@ -1,58 +1,48 @@
 import { ImageAnnotatorClient } from '@google-cloud/vision';
-import path from 'path';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Parse the credentials from environment variable
-let credentials;
-try {
-  credentials = JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS || '{}');
-} catch (error) {
-  console.error('Error parsing GOOGLE_CLOUD_CREDENTIALS:', error);
-  throw new Error('Invalid GOOGLE_CLOUD_CREDENTIALS format');
-}
+export class GoogleVisionService {
+  private client: ImageAnnotatorClient;
 
-// Create Vision API client with credentials
-const client = new ImageAnnotatorClient({
-  credentials
-});
-
-export async function detectText(imageBuffer: Buffer): Promise<string> {
-  try {
-    const base64Image = imageBuffer.toString('base64');
-    const [result] = await client.textDetection({
-      image: { content: base64Image }
-    });
-
-    const detections = result.textAnnotations;
-    if (!detections || detections.length === 0) {
-      throw new Error('No text detected in the image');
-    }
-
-    // El primer elemento contiene todo el texto detectado
-    return detections[0].description || '';
-  } catch (error) {
-    console.error('Error detecting text:', error);
-    throw error;
+  constructor() {
+    this.client = new ImageAnnotatorClient();
   }
-}
 
-export async function detectHandwriting(imageBuffer: Buffer): Promise<string> {
-  try {
-    const base64Image = imageBuffer.toString('base64');
-    const [result] = await client.documentTextDetection({
-      image: { content: base64Image }
-    });
+  async detectText(imageBuffer: Buffer): Promise<string> {
+    try {
+      const [result] = await this.client.textDetection({
+        image: { content: imageBuffer.toString('base64') }
+      });
+      const detections = result.textAnnotations;
+      
+      if (!detections || detections.length === 0) {
+        return '';
+      }
 
-    const detections = result.fullTextAnnotation;
-    if (!detections) {
-      throw new Error('No handwriting detected in the image');
+      return detections[0].description || '';
+    } catch (error) {
+      console.error('Error detecting text:', error);
+      throw new Error('Failed to detect text in image');
     }
+  }
 
-    return detections.text || '';
-  } catch (error) {
-    console.error('Error detecting handwriting:', error);
-    throw error;
+  async detectHandwriting(imageBuffer: Buffer): Promise<string> {
+    try {
+      const [result] = await this.client.documentTextDetection({
+        image: { content: imageBuffer.toString('base64') }
+      });
+      const detections = result.fullTextAnnotation;
+      
+      if (!detections) {
+        return '';
+      }
+
+      return detections.text || '';
+    } catch (error) {
+      console.error('Error detecting handwriting:', error);
+      throw new Error('Failed to detect handwriting in image');
+    }
   }
 } 

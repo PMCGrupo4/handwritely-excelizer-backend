@@ -43,20 +43,16 @@ const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 function getGoogleCloudCredentials() {
     try {
-        // 1. Primero intenta leer desde la variable de entorno (para producción/despliegue)
         if (process.env.GOOGLE_CLOUD_CREDENTIALS) {
             return JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS);
         }
-        // 2. Si no está en la variable de entorno, intenta leer desde el archivo (para desarrollo local)
         const credentialsPath = path.join(process.cwd(), 'credentials', 'google-cloud-credentials.json');
         if (fs.existsSync(credentialsPath)) {
             return JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
         }
-        // 3. Si estamos en producción y no hay credenciales, lanzar error
         if (process.env.NODE_ENV === 'production') {
             throw new Error('No se encontraron las credenciales de Google Cloud en producción');
         }
-        // 4. En desarrollo, usar credenciales de ejemplo si no hay otras disponibles
         console.warn('⚠️ Usando credenciales de ejemplo para desarrollo. No usar en producción.');
         return {
             type: "service_account",

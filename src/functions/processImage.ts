@@ -1,41 +1,33 @@
-import { Handler } from '@netlify/functions';
-import { detectText, detectHandwriting } from '../services/googleVision';
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
+import { GoogleVisionService } from '../services/googleVision';
 
-export const handler: Handler = async (event) => {
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ error: 'Method not allowed' }),
-    };
-  }
+const visionService = new GoogleVisionService();
 
+export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {
-    const { image, type = 'text' } = JSON.parse(event.body || '{}');
-
-    if (!image) {
+    if (!event.body) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ error: 'No image provided' }),
+        body: JSON.stringify({ error: 'No image data provided' })
       };
     }
 
-    // Convertir la imagen base64 a Buffer
-    const imageBuffer = Buffer.from(image.split(',')[1], 'base64');
-
-    // Procesar la imagen según el tipo
-    const result = type === 'handwriting' 
-      ? await detectHandwriting(imageBuffer)
-      : await detectText(imageBuffer);
+    const imageBuffer = Buffer.from(event.body, 'base64');
+    const text = await visionService.detectText(imageBuffer);
+    const handwriting = await visionService.detectHandwriting(imageBuffer);
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ text: result }),
+      body: JSON.stringify({
+        text,
+        handwriting
+      })
     };
   } catch (error) {
     console.error('Error processing image:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Error processing image' }),
+      body: JSON.stringify({ error: 'Failed to process image' })
     };
   }
 }; 

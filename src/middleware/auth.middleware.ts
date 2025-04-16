@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { supabase } from '../config/supabase.config';
+import { supabase } from '../config/supabase';
 
 // Extend Express Request type to include user
 declare global {
@@ -13,36 +13,37 @@ declare global {
   }
 }
 
-export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+export const authenticateToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
-    // Get the authorization header
     const authHeader = req.headers.authorization;
-    
     if (!authHeader) {
-      return res.status(401).json({ error: 'No authorization header' });
+      res.status(401).json({ error: 'No token provided' });
+      return Promise.resolve();
     }
-    
-    // Extract the token
+
     const token = authHeader.split(' ')[1];
-    
     if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
+      res.status(401).json({ error: 'Invalid token format' });
+      return Promise.resolve();
     }
-    
-    // Verify the token with Supabase
+
     const { data: { user }, error } = await supabase.auth.getUser(token);
-    
+
     if (error || !user) {
-      return res.status(401).json({ error: 'Invalid token' });
+      res.status(401).json({ error: 'Invalid token' });
+      return Promise.resolve();
     }
-    
-    // Add the user to the request object
+
     (req as any).user = user;
-    
-    // Continue to the next middleware or route handler
     next();
+    return Promise.resolve();
   } catch (error) {
-    console.error('Auth middleware error:', error);
+    console.error('Auth error:', error);
     res.status(500).json({ error: 'Internal server error' });
+    return Promise.resolve();
   }
 }; 

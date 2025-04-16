@@ -1,10 +1,9 @@
 // Google Document AI OCR Service
-import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
-import { GoogleAuth } from 'google-auth-library';
 import { protos } from '@google-cloud/documentai';
 import * as path from 'path';
 import * as fs from 'fs';
 import dotenv from 'dotenv';
+import { createWorker } from 'tesseract.js';
 
 dotenv.config();
 
@@ -15,28 +14,15 @@ export interface OcrResult {
   receipt?: {
     items: Array<{
       name: string;
-      price: number;
       quantity: number;
-      subtotal: number;
+      price: number;
     }>;
     total: number;
     currency: string;
-    date: string;
-    merchant: {
-      name: string;
-    };
   };
-  metadata: {
+  metadata?: {
     confidence: number;
-    pages: Array<{
-      width: number;
-      height: number;
-      pageNumber: number;
-    }>;
-    processing: {
-      processor: string;
-      timestamp: string;
-    };
+    pages: number;
   };
   rawText: string;
 }
@@ -46,27 +32,17 @@ export interface OcrResult {
  */
 export class OcrService {
   private projectId: string | undefined;
-  private location: string;
-  private processorId: string | undefined;
-  private client: DocumentProcessorServiceClient;
+  private worker: any;
 
   constructor() {
     this.projectId = process.env.GOOGLE_PROJECT_ID;
-    this.location = process.env.GOOGLE_PROCESSOR_LOCATION || 'us';
-    this.processorId = process.env.GOOGLE_PROCESSOR_ID;
     
-    // Parse credentials from environment variable
-    let credentials;
     try {
       // Primero intenta leer desde la variable de entorno
-      if (process.env.GOOGLE_CLOUD_CREDENTIALS) {
-        credentials = JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS);
-      } else {
+      if (!process.env.GOOGLE_CLOUD_CREDENTIALS) {
         // Si no está en la variable de entorno, intenta leer desde el archivo
         const credentialsPath = path.join(process.cwd(), 'credentials', 'google-cloud-credentials.json');
-        if (fs.existsSync(credentialsPath)) {
-          credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
-        } else {
+        if (!fs.existsSync(credentialsPath)) {
           throw new Error('No se encontraron las credenciales de Google Cloud');
         }
       }
@@ -75,13 +51,13 @@ export class OcrService {
       throw new Error('Invalid GOOGLE_CLOUD_CREDENTIALS format');
     }
     
-    // Initialize the client with credentials
-    this.client = new DocumentProcessorServiceClient({
-      credentials,
-      scopes: ['https://www.googleapis.com/auth/cloud-platform']
-    });
-    
     console.log('OCR Service initialized with project:', this.projectId);
+
+    this.initializeWorker();
+  }
+
+  private async initializeWorker() {
+    this.worker = await createWorker('spa');
   }
 
   /**
@@ -89,39 +65,33 @@ export class OcrService {
    * @param {Buffer} imageBuffer - The image buffer to process
    * @returns {Promise<Document>} The processed document with text and structure information
    */
-  async processImage(imageBuffer: Buffer): Promise<Document> {
+  async processImage(imageBuffer: Buffer): Promise<OcrResult> {
     try {
-      if (!this.projectId || !this.processorId) {
-        throw new Error('Google Document AI configuration is missing');
+      if (!this.worker) {
+        await this.initializeWorker();
       }
 
-      // Construct the processor name
-      const name = `projects/${this.projectId}/locations/${this.location}/processors/${this.processorId}`;
+      const { data: { text, confidence } } = await this.worker.recognize(imageBuffer);
+      
+      const items = this.extractItems(text);
+      const total = this.extractTotal(text);
+      const currency = this.extractCurrency(text);
 
-      // Convert buffer to base64
-      const encodedImage = imageBuffer.toString('base64');
-
-      // Create the request
-      const request = {
-        name,
-        rawDocument: {
-          content: encodedImage,
-          mimeType: 'image/jpeg',
-        }
+      return {
+        receipt: {
+          items,
+          total,
+          currency
+        },
+        metadata: {
+          confidence,
+          pages: 1
+        },
+        rawText: text
       };
-
-      // Process the document
-      const [result] = await this.client.processDocument(request);
-      const { document } = result;
-
-      if (!document) {
-        throw new Error('Document processing returned empty result');
-      }
-
-      return document;
     } catch (error) {
-      console.error('Error processing image with Document AI:', error);
-      throw new Error('Failed to process image with OCR service');
+      console.error('Error processing image:', error);
+      throw new Error('Failed to process image');
     }
   }
 
@@ -233,14 +203,6 @@ export class OcrService {
         // Pattern 1: Product name followed by price (most common in simple receipts)
         // Example: "Coca Cola 3000" or "Aquas 60000"
         const pattern1 = /^(.+?)\s+(\d+)$/;
-        
-        // Pattern 2: Quantity followed by product name followed by price
-        // Example: "2 Coca Cola 6000"
-        const pattern2 = /^(\d+)\s+(.+?)\s+(\d+)$/;
-        
-        // Pattern 3: Quantity x Product Price
-        // Example: "2 x Coca Cola 6000"
-        const pattern3 = /^(\d+)\s*x\s*(.+?)\s+(\d+)$/;
         
         let match = line.match(pattern1);
         if (match) {
@@ -388,5 +350,44 @@ export class OcrService {
       name: merchantName,
       // Add more fields as needed (address, phone, etc.)
     };
+  }
+
+  private extractItems(text: string): Array<{ name: string; quantity: number; price: number }> {
+    const lines = text.split('\n');
+    const items: Array<{ name: string; quantity: number; price: number }> = [];
+    const pattern = /^(\d+)\s+(.+?)\s+(\d+\.?\d*)$/;
+
+    for (const line of lines) {
+      const match = line.match(pattern);
+      if (match) {
+        items.push({
+          quantity: parseInt(match[1]),
+          name: match[2].trim(),
+          price: parseFloat(match[3])
+        });
+      }
+    }
+
+    return items;
+  }
+
+  private extractTotal(text: string): number {
+    const lines = text.split('\n');
+    const totalPattern = /total:?\s*(\d+\.?\d*)/i;
+
+    for (const line of lines) {
+      const match = line.match(totalPattern);
+      if (match) {
+        return parseFloat(match[1]);
+      }
+    }
+
+    return 0;
+  }
+
+  private extractCurrency(text: string): string {
+    const currencyPattern = /(\$|€|£|COP)/;
+    const match = text.match(currencyPattern);
+    return match ? match[1] : '$';
   }
 } 

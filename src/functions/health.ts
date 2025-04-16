@@ -1,9 +1,9 @@
-import { Handler } from '@netlify/functions';
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-export const handler: Handler = async (event) => {
+export const handler = async (_event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   // Get environment information (without sensitive data)
   const envInfo = {
     nodeEnv: process.env.NODE_ENV || 'development',

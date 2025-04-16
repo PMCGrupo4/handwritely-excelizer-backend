@@ -6,8 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.handler = void 0;
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
-const handler = async (event) => {
-    // Get environment information (without sensitive data)
+const handler = async (_event) => {
     const envInfo = {
         nodeEnv: process.env.NODE_ENV || 'development',
         googleProjectId: process.env.GOOGLE_PROJECT_ID ? 'configured' : 'not configured',

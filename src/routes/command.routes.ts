@@ -1,25 +1,20 @@
 import { Router } from 'express';
-import multer from 'multer';
 import { CommandController } from '../controllers/command.controller';
-import { authMiddleware } from '../middleware/auth.middleware';
+import { authenticateToken } from '../middleware/auth.middleware';
 
 const router = Router();
-const upload = multer({ storage: multer.memoryStorage() });
 const commandController = new CommandController();
 
-// OCR route - without auth for testing purposes
-router.post('/ocr', upload.single('image'), commandController.processImageOcr.bind(commandController));
+// Rutas protegidas que requieren autenticación
+router.use(authenticateToken);
 
-// Apply auth middleware to all other routes
-router.use(authMiddleware);
+// Crear un nuevo comando
+router.post('/', (req, res) => commandController.createCommand(req, res));
 
-// Get all commands for a user
-router.get('/:userId', commandController.getUserCommands);
+// Obtener un comando por ID
+router.get('/:id', (req, res) => commandController.getCommand(req, res));
 
-// Create a new command
-router.post('/', upload.single('image'), commandController.createCommand);
+// Eliminar un comando
+router.delete('/:id', (req, res) => commandController.deleteCommand(req, res));
 
-// Delete a command
-router.delete('/:id', commandController.deleteCommand);
-
-export const commandRoutes = router; 
+export default router; 

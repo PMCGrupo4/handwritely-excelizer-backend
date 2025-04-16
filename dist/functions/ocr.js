@@ -37,51 +37,34 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handler = void 0;
+const ocr_service_1 = require("../services/ocr.service");
 const formidable_1 = __importDefault(require("formidable"));
-const tesseract_js_1 = require("tesseract.js");
-const XLSX = __importStar(require("xlsx"));
+const fs = __importStar(require("fs"));
+const ocrService = new ocr_service_1.OcrService();
 const handler = async (event) => {
-    if (event.httpMethod !== 'POST') {
-        return {
-            statusCode: 405,
-            body: JSON.stringify({ error: 'Method not allowed' }),
-        };
-    }
     try {
         const form = (0, formidable_1.default)();
-        const [fields, files] = await form.parse(event.body || '');
-        if (!files.file || files.file.length === 0) {
+        const [, files] = await form.parse(event.body || '');
+        if (!files.image) {
             return {
                 statusCode: 400,
-                body: JSON.stringify({ error: 'No file provided' }),
+                body: JSON.stringify({ error: 'No image provided' })
             };
         }
-        const file = files.file[0];
-        const worker = await (0, tesseract_js_1.createWorker)();
-        // Perform OCR on the image
-        const { data: { text } } = await worker.recognize(file.filepath);
-        await worker.terminate();
-        // Convert text to Excel format
-        const workbook = XLSX.utils.book_new();
-        const worksheet = XLSX.utils.aoa_to_sheet([text.split('\n')]);
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'OCR Result');
-        // Generate Excel file
-        const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+        const file = files.image[0];
+        const imageBuffer = fs.readFileSync(file.filepath);
+        const result = await ocrService.processImage(imageBuffer);
+        fs.unlinkSync(file.filepath);
         return {
             statusCode: 200,
-            headers: {
-                'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                'Content-Disposition': 'attachment; filename=ocr-result.xlsx',
-            },
-            body: excelBuffer.toString('base64'),
-            isBase64Encoded: true,
+            body: JSON.stringify(result)
         };
     }
     catch (error) {
-        console.error('Error processing file:', error);
+        console.error('Error processing image:', error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: 'Internal server error' }),
+            body: JSON.stringify({ error: 'Failed to process image' })
         };
     }
 };

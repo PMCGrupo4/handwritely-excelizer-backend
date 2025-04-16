@@ -1,96 +1,57 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import multer from 'multer';
-import { commandRoutes } from './routes/command.routes';
-import { authMiddleware } from './middleware/auth.middleware';
-import { initializeStorage } from './config/storage.config';
-import { createWorker, Worker } from 'tesseract.js';
-import * as XLSX from 'xlsx';
-import formidable from 'formidable';
-import path from 'path';
-import fs from 'fs';
+import { createClient } from '@supabase/supabase-js';
+import { errorHandler } from './middleware/error.middleware';
+import { authenticateToken } from './middleware/auth.middleware';
+import authRoutes from './routes/auth.routes';
+import ocrRoutes from './routes/ocr.routes';
+import commandRoutes from './routes/command.routes';
+import { initializeDirectories } from './utils/init';
 
-// Load environment variables
+// Cargar variables de entorno
 dotenv.config();
 
+// Inicializar directorios
+initializeDirectories();
+
+// Crear cliente de Supabase
+const supabaseUrl = process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
+
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Missing Supabase credentials');
+}
+
+export const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Crear aplicación Express
 const app = express();
-const port = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Configure multer for memory storage
-const upload = multer({ 
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
-  },
-  fileFilter: (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-    // Accept images only
-    if (!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
-      return cb(new Error('Only image files are allowed!'));
-    }
-    cb(null, true);
-  }
-});
+// Rutas de autenticación
+app.use('/auth', authRoutes);
 
-// Routes
-app.use('/api/commands', authMiddleware, upload.single('image'), commandRoutes);
+// Rutas protegidas
+app.use('/api', authenticateToken);
 
-// Ruta para procesar imágenes
-app.post('/api/process-image', async (req: Request, res: Response) => {
-  const form = formidable();
+// Rutas
+app.use('/api/ocr', ocrRoutes);
+app.use('/api/commands', commandRoutes);
 
-  try {
-    const [fields, files] = await form.parse(req as any);
-    const file = files.image?.[0];
+// Rutas públicas para pruebas
+app.use('/public/ocr', ocrRoutes);
+app.use('/public/commands', commandRoutes);
 
-    if (!file) {
-      return res.status(400).json({ error: 'No se proporcionó ninguna imagen' });
-    }
+// Middleware de manejo de errores
+app.use(errorHandler);
 
-    // Inicializar worker de Tesseract
-    const worker = await createWorker();
-    await worker.reinitialize('spa');
-    
-    // Procesar la imagen
-    const { data: { text } } = await worker.recognize(file.filepath);
-    await worker.terminate();
-
-    // Convertir el texto a formato Excel
-    const workbook = XLSX.utils.book_new();
-    const worksheet = XLSX.utils.aoa_to_sheet([['Texto Extraído'], [text]]);
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Texto');
-
-    // Generar el archivo Excel
-    const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-
-    // Enviar el archivo Excel como respuesta
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename=texto_extraido.xlsx');
-    res.send(excelBuffer);
-
-    // Limpiar el archivo temporal
-    fs.unlinkSync(file.filepath);
-  } catch (error) {
-    console.error('Error al procesar la imagen:', error);
-    res.status(500).json({ error: 'Error al procesar la imagen' });
-  }
-});
-
-// Initialize storage on startup
-initializeStorage()
-  .then(() => {
-    console.log('Storage initialization completed');
-    
-    // Start server
-    app.listen(port, () => {
-      console.log(`Server running on port ${port}`);
-    });
-  })
-  .catch(error => {
-    console.error('Failed to initialize storage:', error);
-    process.exit(1);
-  }); 
+// Iniciar servidor
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+}); 

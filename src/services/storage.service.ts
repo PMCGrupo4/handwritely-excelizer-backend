@@ -1,4 +1,4 @@
-import { supabase } from '../config/supabase.config';
+import { supabase } from '../config/supabase';
 import { v4 as uuidv4 } from 'uuid';
 
 interface Bucket {
@@ -26,81 +26,86 @@ export class StorageService {
   /**
    * Verifica si el bucket existe y lo crea si es necesario
    */
-  private async checkBucketExists() {
+  private async checkBucketExists(): Promise<boolean> {
     try {
       const { data: buckets, error } = await supabase.storage.listBuckets();
       
       if (error) {
         console.error('Error checking bucket existence:', error);
-        return;
+        return false;
       }
       
-      const bucketExists = buckets?.some((bucket: Bucket) => bucket.name === this.bucketName);
+      const bucketExists = buckets.some((bucket: Bucket) => bucket.name === this.bucketName);
       
       if (!bucketExists) {
-        console.warn(`Bucket '${this.bucketName}' no encontrado. Asegúrate de que el bucket existe en Supabase.`);
-        console.warn('Puedes crear el bucket manualmente en el panel de Supabase o ejecutar el script SQL en docs/supabase-setup.sql');
+        console.warn(`Bucket '${this.bucketName}' does not exist. Please create it in the Supabase dashboard.`);
       } else {
         console.log(`Bucket '${this.bucketName}' encontrado.`);
       }
+
+      return bucketExists;
     } catch (error) {
       console.error('Error checking bucket existence:', error);
+      return false;
     }
   }
 
   /**
    * Upload an image to Supabase Storage
-   * @param buffer The image buffer
-   * @param userId The user ID
+   * @param file The image file
    * @returns The public URL of the uploaded image
    */
-  async uploadImage(buffer: Buffer, userId: string): Promise<string> {
+  async uploadImage(file: { buffer: Buffer; originalname: string; mimetype: string }): Promise<string> {
     try {
-      // Generate a unique filename
-      const filename = `${userId}/${uuidv4()}.jpg`;
-      
-      // Convert Buffer to Blob
-      const blob = new Blob([buffer], { type: 'image/jpeg' });
-      
-      // Upload the file to Supabase Storage
-      const { data, error } = await supabase.storage
+      const fileExtension = file.originalname.split('.').pop();
+      const fileName = `${uuidv4()}.${fileExtension}`;
+      const filePath = `${fileName}`;
+
+      // Convertir Buffer a Blob
+      const blob = new Blob([file.buffer], { type: file.mimetype });
+
+      const { error } = await supabase.storage
         .from(this.bucketName)
-        .upload(filename, blob, {
-          contentType: 'image/jpeg',
-          upsert: false,
+        .upload(filePath, blob, {
+          contentType: file.mimetype,
+          upsert: false
         });
-      
-      if (error) throw error;
-      
-      // Get the public URL
+
+      if (error) {
+        throw error;
+      }
+
       const { data: { publicUrl } } = supabase.storage
         .from(this.bucketName)
-        .getPublicUrl(filename);
-      
+        .getPublicUrl(filePath);
+
       return publicUrl;
     } catch (error) {
       console.error('Error uploading image:', error);
-      throw new Error('Failed to upload image');
+      throw error;
     }
   }
 
   /**
    * Delete an image from Supabase Storage
-   * @param url The public URL of the image
+   * @param imageUrl The public URL of the image
    * @returns True if successful
    */
-  async deleteImage(url: string): Promise<boolean> {
+  async deleteImage(imageUrl: string): Promise<boolean> {
     try {
-      // Extract the path from the URL
-      const path = url.split('/').slice(-2).join('/');
-      
-      // Delete the file from Supabase Storage
+      const filePath = imageUrl.split('/').pop();
+      if (!filePath) {
+        throw new Error('Invalid image URL');
+      }
+
       const { error } = await supabase.storage
         .from(this.bucketName)
-        .remove([path]);
-      
-      if (error) throw error;
-      
+        .remove([filePath]);
+
+      if (error) {
+        throw error;
+      }
+
       return true;
     } catch (error) {
       console.error('Error deleting image:', error);

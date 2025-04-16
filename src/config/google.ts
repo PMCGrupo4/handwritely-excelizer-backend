@@ -1,8 +1,12 @@
 import dotenv from 'dotenv';
-dotenv.config(); // Asegúrate de cargar las variables de entorno
 
-// Variable para almacenar las credenciales parseadas
-let googleCloudCredentials: any = null;
+dotenv.config();
+
+export const googleCloudCredentials = {
+  projectId: process.env.GOOGLE_PROJECT_ID,
+  location: process.env.GOOGLE_LOCATION || 'us',
+  processorId: process.env.GOOGLE_PROCESSOR_ID
+};
 
 // Obtener el string JSON de la variable de entorno
 const credentialsString = process.env.GOOGLE_CLOUD_CREDENTIALS;
@@ -10,10 +14,10 @@ const credentialsString = process.env.GOOGLE_CLOUD_CREDENTIALS;
 if (credentialsString) {
   try {
     // Parsear el string JSON a un objeto
-    googleCloudCredentials = JSON.parse(credentialsString);
+    JSON.parse(credentialsString);
     console.log("Google Cloud credentials loaded successfully.");
-    // Aquí puedes inicializar tu cliente de Google Cloud usando el objeto 'googleCloudCredentials'
-    // Ejemplo: const vision = new Vision({ credentials: googleCloudCredentials });
+    // Aquí puedes inicializar tu cliente de Google Cloud usando el objeto 'googleCloudCredentialsParsed'
+    // Ejemplo: const vision = new Vision({ credentials: googleCloudCredentialsParsed });
   } catch (error) {
     console.error("Error parsing GOOGLE_CLOUD_CREDENTIALS JSON:", error);
     // Decide cómo manejar el error: ¿detener el servidor, usar un default, etc.?
@@ -23,6 +27,6 @@ if (credentialsString) {
   // Decide cómo manejar la ausencia de credenciales
 }
 
-// Ahora puedes usar la variable 'googleCloudCredentials' donde la necesites,
+// Ahora puedes usar la variable 'googleCloudCredentialsParsed' donde la necesites,
 // asegurándote de que no sea null antes de usarla.
-// Ejemplo: if (googleCloudCredentials) { /* usa credentials.project_id, etc. */ }s
+// Ejemplo: if (googleCloudCredentialsParsed) { /* usa credentials.project_id, etc. */ }

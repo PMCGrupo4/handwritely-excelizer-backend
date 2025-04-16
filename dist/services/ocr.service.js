@@ -1,85 +1,98 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OcrService = void 0;
-// Google Document AI OCR Service
-const documentai_1 = require("@google-cloud/documentai");
+const path = __importStar(require("path"));
+const fs = __importStar(require("fs"));
 const dotenv_1 = __importDefault(require("dotenv"));
+const tesseract_js_1 = require("tesseract.js");
 dotenv_1.default.config();
-/**
- * OCR Service using Google Document AI
- */
 class OcrService {
     constructor() {
         this.projectId = process.env.GOOGLE_PROJECT_ID;
-        this.location = process.env.GOOGLE_PROCESSOR_LOCATION || 'us';
-        this.processorId = process.env.GOOGLE_PROCESSOR_ID;
-        // Parse credentials from environment variable
-        let credentials;
         try {
-            credentials = JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS || '{}');
+            if (!process.env.GOOGLE_CLOUD_CREDENTIALS) {
+                const credentialsPath = path.join(process.cwd(), 'credentials', 'google-cloud-credentials.json');
+                if (!fs.existsSync(credentialsPath)) {
+                    throw new Error('No se encontraron las credenciales de Google Cloud');
+                }
+            }
         }
         catch (error) {
             console.error('Error parsing GOOGLE_CLOUD_CREDENTIALS:', error);
             throw new Error('Invalid GOOGLE_CLOUD_CREDENTIALS format');
         }
-        // Initialize the client with credentials
-        this.client = new documentai_1.DocumentProcessorServiceClient({
-            credentials,
-            scopes: ['https://www.googleapis.com/auth/cloud-platform']
-        });
         console.log('OCR Service initialized with project:', this.projectId);
+        this.initializeWorker();
     }
-    /**
-     * Process an image using Google Document AI
-     * @param {Buffer} imageBuffer - The image buffer to process
-     * @returns {Promise<Document>} The processed document with text and structure information
-     */
+    async initializeWorker() {
+        this.worker = await (0, tesseract_js_1.createWorker)('spa');
+    }
     async processImage(imageBuffer) {
         try {
-            if (!this.projectId || !this.processorId) {
-                throw new Error('Google Document AI configuration is missing');
+            if (!this.worker) {
+                await this.initializeWorker();
             }
-            // Construct the processor name
-            const name = `projects/${this.projectId}/locations/${this.location}/processors/${this.processorId}`;
-            // Convert buffer to base64
-            const encodedImage = imageBuffer.toString('base64');
-            // Create the request
-            const request = {
-                name,
-                rawDocument: {
-                    content: encodedImage,
-                    mimeType: 'image/jpeg',
-                }
+            const { data: { text, confidence } } = await this.worker.recognize(imageBuffer);
+            const items = this.extractItems(text);
+            const total = this.extractTotal(text);
+            const currency = this.extractCurrency(text);
+            return {
+                receipt: {
+                    items,
+                    total,
+                    currency
+                },
+                metadata: {
+                    confidence,
+                    pages: 1
+                },
+                rawText: text
             };
-            // Process the document
-            const [result] = await this.client.processDocument(request);
-            const { document } = result;
-            if (!document) {
-                throw new Error('Document processing returned empty result');
-            }
-            return document;
         }
         catch (error) {
-            console.error('Error processing image with Document AI:', error);
-            throw new Error('Failed to process image with OCR service');
+            console.error('Error processing image:', error);
+            throw new Error('Failed to process image');
         }
     }
-    /**
-     * Extract text from a processed document
-     * @param {Document} document - The processed document
-     * @returns {string} The extracted text
-     */
     extractText(document) {
         return document.text || '';
     }
-    /**
-     * Extract entities (key-value pairs) from a processed document
-     * @param {Document} document - The processed document
-     * @returns {Array<Object>} Array of extracted entities
-     */
     extractEntities(document) {
         if (!document.entities || !document.entities.length) {
             return [];
@@ -97,17 +110,11 @@ class OcrService {
                 : null
         }));
     }
-    /**
-     * Extract products and prices from OCR text
-     * @param {string} text - The extracted text from OCR
-     * @returns {Array<{product: string, quantity: number, price: number}>} Array of products, quantities and prices
-     */
     extractProductsAndPrices(text) {
         const lines = text.split('\n').filter(line => line.trim() !== '');
         const results = [];
         console.log("Analyzing OCR text lines:");
         console.log(lines);
-        // Check if this is a tabular format with column headers
         const isTabularFormat = lines.length >= 3 &&
             (lines[0].toLowerCase().includes('cantidad') ||
                 lines[0].toLowerCase().includes('cant') ||
@@ -115,16 +122,13 @@ class OcrService {
                 lines[1].toLowerCase().includes('product'));
         if (isTabularFormat) {
             console.log("Detected tabular format with column headers");
-            // Skip headers
             const startIndex = lines.findIndex(line => line.toLowerCase().includes('total') ||
                 line.toLowerCase().includes('precio')) + 1;
-            // Process items in groups of 3 (quantity, product, price)
             for (let i = startIndex; i < lines.length; i += 3) {
                 if (i + 2 < lines.length) {
                     const quantityStr = lines[i].trim();
                     const product = lines[i + 1].trim();
                     const priceStr = lines[i + 2].trim();
-                    // Validate that quantityStr and priceStr are numbers
                     if (/^\d+$/.test(quantityStr) && /^\d+$/.test(priceStr)) {
                         const quantity = parseInt(quantityStr);
                         const price = parseInt(priceStr);
@@ -139,36 +143,22 @@ class OcrService {
             }
         }
         else {
-            // Try standard patterns first
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
                 console.log(`Processing line: "${line}"`);
-                // Skip very short lines that might be just numbers (like indices)
                 if (line.length < 2 || /^\d+$/.test(line)) {
                     console.log("Skipping index line");
                     continue;
                 }
-                // Try to match different patterns
-                // Pattern 1: Product name followed by price (most common in simple receipts)
-                // Example: "Coca Cola 3000" or "Aquas 60000"
                 const pattern1 = /^(.+?)\s+(\d+)$/;
-                // Pattern 2: Quantity followed by product name followed by price
-                // Example: "2 Coca Cola 6000"
-                const pattern2 = /^(\d+)\s+(.+?)\s+(\d+)$/;
-                // Pattern 3: Quantity x Product Price
-                // Example: "2 x Coca Cola 6000"
-                const pattern3 = /^(\d+)\s*x\s*(.+?)\s+(\d+)$/;
                 let match = line.match(pattern1);
                 if (match) {
                     const product = match[1].trim();
                     const price = parseInt(match[2]);
-                    // Check if the previous line contains just a number 
-                    // which could potentially be the quantity
-                    let quantity = 1; // Default
+                    let quantity = 1;
                     if (i > 0 && /^\d+$/.test(lines[i - 1].trim())) {
                         const prevLine = lines[i - 1].trim();
                         const potentialQty = parseInt(prevLine);
-                        // Only use as quantity if it's a reasonable number (not too large)
                         if (potentialQty > 0 && potentialQty < 100) {
                             quantity = potentialQty;
                             console.log(`Found quantity ${quantity} in previous line for product ${product}`);
@@ -182,23 +172,17 @@ class OcrService {
                     console.log(`Extracted from pattern 1: ${product}, qty: ${quantity}, price: ${price}`);
                     continue;
                 }
-                // Other patterns...
             }
-            // If we haven't matched anything yet, try multiline approach
             if (results.length === 0) {
                 console.log("No standard patterns found, trying alternative approach");
-                // Find triplets of (quantity, product, price)
                 for (let i = 0; i < lines.length - 2; i++) {
                     const qtyLine = lines[i].trim();
                     const productLine = lines[i + 1].trim();
                     const priceLine = lines[i + 2].trim();
-                    // Check if first line is a single number (quantity)
                     if (/^\d+$/.test(qtyLine) && qtyLine.length < 3) {
                         const quantity = parseInt(qtyLine);
-                        // Check if third line is a number (price)
                         if (/^\d+$/.test(priceLine) && parseInt(priceLine) > 100) {
                             const price = parseInt(priceLine);
-                            // Second line is the product
                             const product = productLine;
                             results.push({
                                 product,
@@ -206,7 +190,6 @@ class OcrService {
                                 price
                             });
                             console.log(`Extracted from triplet pattern: ${product}, qty: ${quantity}, price: ${price}`);
-                            // Skip the next two lines since we processed them
                             i += 2;
                         }
                     }
@@ -216,17 +199,9 @@ class OcrService {
         console.log(`Total items extracted: ${results.length}`);
         return results;
     }
-    /**
-     * Format OCR results into a standardized structure
-     * @param {string} text - The raw text from OCR
-     * @param {Document} document - The original document
-     * @returns {object} Formatted OCR results
-     */
     formatOcrResults(text, document) {
         var _a;
-        // Extract products and prices
         const items = this.extractProductsAndPrices(text);
-        // Calculate subtotals for each item and the overall total
         const itemsWithSubtotals = items.map(item => ({
             name: item.product,
             price: item.price,
@@ -234,7 +209,6 @@ class OcrService {
             subtotal: item.price * item.quantity
         }));
         const total = itemsWithSubtotals.reduce((sum, item) => sum + item.subtotal, 0);
-        // Get document pages and dimensions if available
         const pages = ((_a = document.pages) === null || _a === void 0 ? void 0 : _a.map((page) => {
             var _a, _b;
             return ({
@@ -243,20 +217,17 @@ class OcrService {
                 pageNumber: page.pageNumber || 1
             });
         })) || [];
-        // Get confidence score if available - simplify to avoid type errors
         let textConfidence = 0;
         if (document.textChanges && document.textChanges.length > 0) {
-            // Use any available confidence metrics, or default to 0.95 for Google Document AI
             textConfidence = 0.95;
         }
-        // Format the response
         return {
             receipt: {
                 items: itemsWithSubtotals,
                 total: total,
-                currency: 'COP', // Default, you could make this configurable
+                currency: 'COP',
                 date: new Date().toISOString(),
-                merchant: this.extractMerchantInfo(text) // Additional helper method
+                merchant: this.extractMerchantInfo(text)
             },
             metadata: {
                 confidence: textConfidence,
@@ -269,21 +240,44 @@ class OcrService {
             rawText: text
         };
     }
-    /**
-     * Attempt to extract merchant information
-     * @param {string} text - The raw text from OCR
-     * @returns {object} Merchant information
-     */
     extractMerchantInfo(text) {
-        // This is a simplified implementation
-        // You might want to enhance this with more sophisticated pattern matching
         const lines = text.split('\n').filter(line => line.trim() !== '');
-        // Often the merchant name is at the top of the receipt
         const merchantName = lines.length > 0 ? lines[0].trim() : 'Unknown';
         return {
             name: merchantName,
-            // Add more fields as needed (address, phone, etc.)
         };
+    }
+    extractItems(text) {
+        const lines = text.split('\n');
+        const items = [];
+        const pattern = /^(\d+)\s+(.+?)\s+(\d+\.?\d*)$/;
+        for (const line of lines) {
+            const match = line.match(pattern);
+            if (match) {
+                items.push({
+                    quantity: parseInt(match[1]),
+                    name: match[2].trim(),
+                    price: parseFloat(match[3])
+                });
+            }
+        }
+        return items;
+    }
+    extractTotal(text) {
+        const lines = text.split('\n');
+        const totalPattern = /total:?\s*(\d+\.?\d*)/i;
+        for (const line of lines) {
+            const match = line.match(totalPattern);
+            if (match) {
+                return parseFloat(match[1]);
+            }
+        }
+        return 0;
+    }
+    extractCurrency(text) {
+        const currencyPattern = /(\$|€|£|COP)/;
+        const match = text.match(currencyPattern);
+        return match ? match[1] : '$';
     }
 }
 exports.OcrService = OcrService;

@@ -1,98 +1,76 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StorageService = void 0;
-const storage_1 = require("@google-cloud/storage");
-const path = __importStar(require("path"));
-const dotenv_1 = __importDefault(require("dotenv"));
-dotenv_1.default.config();
-/**
- * Storage Service using Google Cloud Storage
- */
+const supabase_1 = require("../config/supabase");
+const uuid_1 = require("uuid");
 class StorageService {
     constructor(config) {
-        this.storage = new storage_1.Storage({
-            projectId: config.projectId,
-            keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
-        });
-        this.bucketName = config.bucketName;
+        this.bucketName = (config === null || config === void 0 ? void 0 : config.bucketName) || 'receipt-images';
+        this.checkBucketExists();
     }
-    /**
-     * Upload a file to Google Cloud Storage
-     */
-    async uploadFile(filePath, destination) {
+    async checkBucketExists() {
         try {
-            await this.storage.bucket(this.bucketName).upload(filePath, {
-                destination,
-                metadata: {
-                    contentType: 'application/pdf',
-                },
-            });
-            const [url] = await this.storage
-                .bucket(this.bucketName)
-                .file(destination)
-                .getSignedUrl({
-                version: 'v4',
-                action: 'read',
-                expires: Date.now() + 15 * 60 * 1000, // 15 minutes
-            });
-            return {
-                url,
-                path: destination,
-                bucket: this.bucketName,
-                filename: path.basename(destination),
-            };
+            const { data: buckets, error } = await supabase_1.supabase.storage.listBuckets();
+            if (error) {
+                console.error('Error checking bucket existence:', error);
+                return false;
+            }
+            const bucketExists = buckets.some((bucket) => bucket.name === this.bucketName);
+            if (!bucketExists) {
+                console.warn(`Bucket '${this.bucketName}' does not exist. Please create it in the Supabase dashboard.`);
+            }
+            else {
+                console.log(`Bucket '${this.bucketName}' encontrado.`);
+            }
+            return bucketExists;
         }
         catch (error) {
-            console.error('Error uploading file:', error);
-            throw new Error('Failed to upload file to storage');
+            console.error('Error checking bucket existence:', error);
+            return false;
         }
     }
-    /**
-     * Delete a file from Google Cloud Storage
-     */
-    async deleteFile(filePath) {
+    async uploadImage(file) {
         try {
-            await this.storage.bucket(this.bucketName).file(filePath).delete();
+            const fileExtension = file.originalname.split('.').pop();
+            const fileName = `${(0, uuid_1.v4)()}.${fileExtension}`;
+            const filePath = `${fileName}`;
+            const blob = new Blob([file.buffer], { type: file.mimetype });
+            const { error } = await supabase_1.supabase.storage
+                .from(this.bucketName)
+                .upload(filePath, blob, {
+                contentType: file.mimetype,
+                upsert: false
+            });
+            if (error) {
+                throw error;
+            }
+            const { data: { publicUrl } } = supabase_1.supabase.storage
+                .from(this.bucketName)
+                .getPublicUrl(filePath);
+            return publicUrl;
         }
         catch (error) {
-            console.error('Error deleting file:', error);
-            throw new Error('Failed to delete file from storage');
+            console.error('Error uploading image:', error);
+            throw error;
+        }
+    }
+    async deleteImage(imageUrl) {
+        try {
+            const filePath = imageUrl.split('/').pop();
+            if (!filePath) {
+                throw new Error('Invalid image URL');
+            }
+            const { error } = await supabase_1.supabase.storage
+                .from(this.bucketName)
+                .remove([filePath]);
+            if (error) {
+                throw error;
+            }
+            return true;
+        }
+        catch (error) {
+            console.error('Error deleting image:', error);
+            return false;
         }
     }
 }

@@ -2,37 +2,31 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.handler = void 0;
 const googleVision_1 = require("../services/googleVision");
+const visionService = new googleVision_1.GoogleVisionService();
 const handler = async (event) => {
-    if (event.httpMethod !== 'POST') {
-        return {
-            statusCode: 405,
-            body: JSON.stringify({ error: 'Method not allowed' }),
-        };
-    }
     try {
-        const { image, type = 'text' } = JSON.parse(event.body || '{}');
-        if (!image) {
+        if (!event.body) {
             return {
                 statusCode: 400,
-                body: JSON.stringify({ error: 'No image provided' }),
+                body: JSON.stringify({ error: 'No image data provided' })
             };
         }
-        // Convertir la imagen base64 a Buffer
-        const imageBuffer = Buffer.from(image.split(',')[1], 'base64');
-        // Procesar la imagen según el tipo
-        const result = type === 'handwriting'
-            ? await (0, googleVision_1.detectHandwriting)(imageBuffer)
-            : await (0, googleVision_1.detectText)(imageBuffer);
+        const imageBuffer = Buffer.from(event.body, 'base64');
+        const text = await visionService.detectText(imageBuffer);
+        const handwriting = await visionService.detectHandwriting(imageBuffer);
         return {
             statusCode: 200,
-            body: JSON.stringify({ text: result }),
+            body: JSON.stringify({
+                text,
+                handwriting
+            })
         };
     }
     catch (error) {
         console.error('Error processing image:', error);
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: 'Error processing image' }),
+            body: JSON.stringify({ error: 'Failed to process image' })
         };
     }
 };
