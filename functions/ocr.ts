@@ -4,10 +4,10 @@ import * as XLSX from 'xlsx';
 import { supabase } from './supabase';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': 'https://handsheet.netlify.app',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Credentials': 'true'
+  'Access-Control-Max-Age': '86400'
 };
 
 export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> => {
@@ -15,10 +15,7 @@ export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResp
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 204, // No content for OPTIONS
-      headers: {
-        ...corsHeaders,
-        'Content-Length': '0'
-      },
+      headers: corsHeaders,
       body: ''
     };
   }
