@@ -25,6 +25,12 @@
   force = true
 
 [[redirects]]
+  from = "/api/commands/ocr"
+  to = "/.netlify/functions/ocr"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/commands/ocr"
   to = "/.netlify/functions/ocr"
   status = 200
