@@ -7,9 +7,10 @@ import { AppError } from './shared/error';
 export const handler: Handler = async (event) => {
   // Configurar headers CORS
   const corsHeaders = {
-    'Access-Control-Allow-Origin': process.env.CORS_ORIGIN || 'https://handsheet.netlify.app',
-    'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept, Authorization',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Origin': 'https://handsheet.netlify.app',
+    'Access-Control-Allow-Headers': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Credentials': 'true'
   };
 
   // Manejar preflight requests
