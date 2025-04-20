@@ -3,6 +3,10 @@
   functions = "functions-dist"
   publish = "public"
 
+[functions]
+  directory = "functions"
+  node_bundler = "esbuild"
+
 [build.environment]
   NODE_VERSION = "18"
   NPM_VERSION = "9"

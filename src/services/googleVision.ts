@@ -21,7 +21,7 @@ const client = new ImageAnnotatorClient({
 export async function detectText(imageBuffer: Buffer): Promise<string> {
   try {
     const [result] = await client.textDetection({
-      image: { content: imageBuffer },
+      image: { content: imageBuffer.toString('base64') },
     });
 
     const detections = result.textAnnotations;
@@ -40,7 +40,7 @@ export async function detectText(imageBuffer: Buffer): Promise<string> {
 export async function detectHandwriting(imageBuffer: Buffer): Promise<string> {
   try {
     const [result] = await client.documentTextDetection({
-      image: { content: imageBuffer },
+      image: { content: imageBuffer.toString('base64') },
     });
 
     const detections = result.fullTextAnnotation;
