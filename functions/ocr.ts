@@ -1,7 +1,8 @@
 import { Handler } from '@netlify/functions';
 import { createWorker } from 'tesseract.js';
 import * as XLSX from 'xlsx';
-import { supabase } from '../src/config/supabase';
+import { supabase } from './supabase';
+import { AppError } from './shared/error';
 
 export const handler: Handler = async (event) => {
   // Verificar que sea una petición POST
@@ -58,7 +59,7 @@ export const handler: Handler = async (event) => {
       .single();
 
     if (error) {
-      console.error('Error al guardar en Supabase:', error);
+      console.error('Error al guardar en Supabase:', error as AppError);
       return {
         statusCode: 500,
         body: JSON.stringify({ error: 'Error al guardar los resultados' })
@@ -84,7 +85,7 @@ export const handler: Handler = async (event) => {
       })
     };
   } catch (error) {
-    console.error('Error al procesar la imagen:', error);
+    console.error('Error al procesar la imagen:', error as AppError);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: 'Error al procesar la imagen' })
