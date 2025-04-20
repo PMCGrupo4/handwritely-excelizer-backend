@@ -7,7 +7,9 @@
   directory = "functions"
   node_bundler = "esbuild"
   external_node_modules = ["tesseract.js", "xlsx"]
-  timeout = 30
+
+[functions.timeout]
+  external_node_modules = ["tesseract.js", "xlsx"]
 
 [build.environment]
   NODE_VERSION = "18"
