@@ -2,7 +2,6 @@ import { Handler, HandlerEvent, HandlerResponse } from '@netlify/functions';
 import * as XLSX from 'xlsx';
 import { supabase } from './supabase';
 import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
-import { GoogleAuth } from 'google-auth-library';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
