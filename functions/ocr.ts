@@ -4,11 +4,12 @@ import * as XLSX from 'xlsx';
 import { supabase } from './supabase';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': 'https://handsheet.netlify.app',
-  'Access-Control-Allow-Headers': '*',
-  'Access-Control-Allow-Methods': '*',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Credentials': 'true',
   'Access-Control-Max-Age': '86400',
+  'Content-Type': 'application/json',
   'Vary': 'Origin'
 };
 
@@ -24,7 +25,11 @@ const handleOptions = async (): Promise<HandlerResponse> => {
 export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> => {
   // Manejar preflight requests
   if (event.httpMethod === 'OPTIONS') {
-    return handleOptions();
+    return {
+      statusCode: 204,
+      headers: corsHeaders,
+      body: ''
+    };
   }
 
   // Verificar que sea una petición POST
