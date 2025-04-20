@@ -1,4 +1,4 @@
-import { Handler, HandlerEvent, HandlerContext, HandlerResponse } from '@netlify/functions';
+import { Handler, HandlerEvent, HandlerResponse } from '@netlify/functions';
 import { createWorker } from 'tesseract.js';
 import * as XLSX from 'xlsx';
 import { supabase } from './supabase';
@@ -21,7 +21,7 @@ const handleOptions = async (): Promise<HandlerResponse> => {
   };
 };
 
-export const handler: Handler = async (event: HandlerEvent, context: HandlerContext): Promise<HandlerResponse> => {
+export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> => {
   // Manejar preflight requests
   if (event.httpMethod === 'OPTIONS') {
     return handleOptions();
