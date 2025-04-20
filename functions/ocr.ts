@@ -5,10 +5,27 @@ import { supabase } from './supabase';
 import { AppError } from './shared/error';
 
 export const handler: Handler = async (event) => {
+  // Configurar headers CORS
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': process.env.CORS_ORIGIN || 'https://handsheet.netlify.app',
+    'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept, Authorization',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  };
+
+  // Manejar preflight requests
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 204,
+      headers: corsHeaders,
+      body: ''
+    };
+  }
+
   // Verificar que sea una petición POST
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
+      headers: corsHeaders,
       body: JSON.stringify({ error: 'Method Not Allowed' })
     };
   }
@@ -21,6 +38,7 @@ export const handler: Handler = async (event) => {
     if (!imageBase64) {
       return {
         statusCode: 400,
+        headers: corsHeaders,
         body: JSON.stringify({ error: 'No se proporcionó ninguna imagen' })
       };
     }
@@ -62,6 +80,7 @@ export const handler: Handler = async (event) => {
       console.error('Error al guardar en Supabase:', error as AppError);
       return {
         statusCode: 500,
+        headers: corsHeaders,
         body: JSON.stringify({ error: 'Error al guardar los resultados' })
       };
     }
@@ -69,6 +88,7 @@ export const handler: Handler = async (event) => {
     if (!data) {
       return {
         statusCode: 500,
+        headers: corsHeaders,
         body: JSON.stringify({ error: 'No se pudo obtener el ID del resultado' })
       };
     }
@@ -76,6 +96,7 @@ export const handler: Handler = async (event) => {
     return {
       statusCode: 200,
       headers: {
+        ...corsHeaders,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -88,6 +109,7 @@ export const handler: Handler = async (event) => {
     console.error('Error al procesar la imagen:', error as AppError);
     return {
       statusCode: 500,
+      headers: corsHeaders,
       body: JSON.stringify({ error: 'Error al procesar la imagen' })
     };
   }
