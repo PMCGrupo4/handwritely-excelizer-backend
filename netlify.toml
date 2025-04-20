@@ -19,7 +19,7 @@
   status = 204
   force = true
   methods = ["OPTIONS"]
-  headers = {Access-Control-Allow-Origin = "*", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With"}
+  headers = {Access-Control-Allow-Origin = "https://handsheet.netlify.app", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With", Access-Control-Allow-Credentials = "true"}
 
 # Handle OPTIONS requests generally
 [[redirects]]
@@ -28,7 +28,7 @@
   status = 204
   force = true
   methods = ["OPTIONS"]
-  headers = {Access-Control-Allow-Origin = "*", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With"}
+  headers = {Access-Control-Allow-Origin = "https://handsheet.netlify.app", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With", Access-Control-Allow-Credentials = "true"}
 
 # Regular API requests for OCR
 [[redirects]]
@@ -36,7 +36,7 @@
   to = "/.netlify/functions/ocr"
   status = 200
   force = true
-  headers = {Access-Control-Allow-Origin = "*", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With"}
+  headers = {Access-Control-Allow-Origin = "https://handsheet.netlify.app", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With", Access-Control-Allow-Credentials = "true"}
 
 # Regular API requests
 [[redirects]]
@@ -44,22 +44,24 @@
   to = "/.netlify/functions/:splat"
   status = 200
   force = true
-  headers = {Access-Control-Allow-Origin = "*", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With"}
+  headers = {Access-Control-Allow-Origin = "https://handsheet.netlify.app", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With", Access-Control-Allow-Credentials = "true"}
 
 # Headers for all paths
 [[headers]]
   for = "/*"
   [headers.values]
-    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Origin = "https://handsheet.netlify.app"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
     Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With"
+    Access-Control-Allow-Credentials = "true"
     Access-Control-Max-Age = "86400"
 
 # Specific headers for functions
 [[headers]]
   for = "/.netlify/functions/*"
   [headers.values]
-    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Origin = "https://handsheet.netlify.app"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
     Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With"
+    Access-Control-Allow-Credentials = "true"
     Access-Control-Max-Age = "86400"

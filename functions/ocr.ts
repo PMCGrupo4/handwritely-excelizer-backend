@@ -3,13 +3,6 @@ import * as XLSX from 'xlsx';
 import { supabase } from './supabase';
 import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
-  'Access-Control-Max-Age': '86400'
-};
-
 export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> => {
   // Log request information for debugging
   console.log('OCR function received request:', {
@@ -19,6 +12,18 @@ export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResp
     origin: event.headers.origin || event.headers.Origin,
     referer: event.headers.referer || event.headers.Referer
   });
+  
+  // Obtener el origen de la solicitud o usar el origen del frontend por defecto
+  const origin = event.headers.origin || event.headers.Origin || 'https://handsheet.netlify.app';
+  
+  // Definir los encabezados CORS con el origen específico
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
+    'Access-Control-Max-Age': '86400',
+    'Access-Control-Allow-Credentials': 'true'
+  };
   
   // Handle OPTIONS request for CORS preflight
   if (event.httpMethod === 'OPTIONS') {

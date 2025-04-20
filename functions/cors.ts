@@ -8,12 +8,16 @@ export const handler: Handler = async (event) => {
     origin: event.headers.origin || event.headers.Origin
   });
 
+  // Obtener el origen de la solicitud o usar el origen del frontend por defecto
+  const origin = event.headers.origin || event.headers.Origin || 'https://handsheet.netlify.app';
+
   // Set CORS headers for response
   const headers = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Max-Age': '86400'
+    'Access-Control-Max-Age': '86400',
+    'Access-Control-Allow-Credentials': 'true'
   };
 
   // Para solicitudes OPTIONS, siempre devolver 204 No Content
