@@ -1,1 +1,5 @@
-/api/*  /.netlify/functions/:splat  200 
+# Handle OPTIONS preflight requests
+/api/*  /.netlify/functions/:splat  200
+
+# Handle normal requests
+/api/*  /.netlify/functions/:splat  200! 
