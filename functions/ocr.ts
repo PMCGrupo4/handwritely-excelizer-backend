@@ -111,7 +111,7 @@ export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResp
       body: JSON.stringify({ success: true, data })
     };
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error processing request:', error);
     return {
       statusCode: 500,
