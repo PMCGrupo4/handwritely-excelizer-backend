@@ -12,15 +12,7 @@
   NODE_VERSION = "18"
   NPM_VERSION = "9"
 
-# Redirect for OPTIONS preflight requests
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/cors"
-  status = 200
-  force = true
-  methods = ["OPTIONS"]
-
-# Redirect for actual API requests
+# Single redirect for all API requests including preflight
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
@@ -30,6 +22,15 @@
 # Headers for all paths
 [[headers]]
   for = "/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+    Access-Control-Max-Age = "86400"
+
+# Specific headers for functions
+[[headers]]
+  for = "/.netlify/functions/*"
   [headers.values]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
