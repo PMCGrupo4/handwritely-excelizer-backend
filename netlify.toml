@@ -20,56 +20,28 @@
   to = "/.netlify/functions/ocr"
   status = 200
   force = true
-  headers = {
-    Access-Control-Allow-Origin = "https://handsheet.netlify.app",
-    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS",
-    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With",
-    Access-Control-Allow-Credentials = "true",
-    Access-Control-Max-Age = "86400",
-    Vary = "Origin"
-  }
+  headers = {Access-Control-Allow-Origin = "https://handsheet.netlify.app", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With", Access-Control-Allow-Credentials = "true", Access-Control-Max-Age = "86400", Vary = "Origin"}
 
 [[redirects]]
   from = "/api/commands/ocr"
   to = "/.netlify/functions/ocr"
   status = 200
   force = true
-  headers = {
-    Access-Control-Allow-Origin = "https://handsheet.netlify.app",
-    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS",
-    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With",
-    Access-Control-Allow-Credentials = "true",
-    Access-Control-Max-Age = "86400",
-    Vary = "Origin"
-  }
+  headers = {Access-Control-Allow-Origin = "https://handsheet.netlify.app", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With", Access-Control-Allow-Credentials = "true", Access-Control-Max-Age = "86400", Vary = "Origin"}
 
 [[redirects]]
   from = "/health"
   to = "/.netlify/functions/health"
   status = 200
   force = true
-  headers = {
-    Access-Control-Allow-Origin = "https://handsheet.netlify.app",
-    Access-Control-Allow-Methods = "GET, OPTIONS",
-    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With",
-    Access-Control-Allow-Credentials = "true",
-    Access-Control-Max-Age = "86400",
-    Vary = "Origin"
-  }
+  headers = {Access-Control-Allow-Origin = "https://handsheet.netlify.app", Access-Control-Allow-Methods = "GET, OPTIONS", Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With", Access-Control-Allow-Credentials = "true", Access-Control-Max-Age = "86400", Vary = "Origin"}
 
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
   force = true
-  headers = {
-    Access-Control-Allow-Origin = "https://handsheet.netlify.app",
-    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS",
-    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With",
-    Access-Control-Allow-Credentials = "true",
-    Access-Control-Max-Age = "86400",
-    Vary = "Origin"
-  }
+  headers = {Access-Control-Allow-Origin = "https://handsheet.netlify.app", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With", Access-Control-Allow-Credentials = "true", Access-Control-Max-Age = "86400", Vary = "Origin"}
 
 [[redirects]]
   from = "/*"
@@ -77,11 +49,4 @@
   status = 200
   force = true
   methods = ["OPTIONS"]
-  headers = {
-    Access-Control-Allow-Origin = "https://handsheet.netlify.app",
-    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS",
-    Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With",
-    Access-Control-Allow-Credentials = "true",
-    Access-Control-Max-Age = "86400",
-    Vary = "Origin"
-  }
+  headers = {Access-Control-Allow-Origin = "https://handsheet.netlify.app", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With", Access-Control-Allow-Credentials = "true", Access-Control-Max-Age = "86400", Vary = "Origin"}
