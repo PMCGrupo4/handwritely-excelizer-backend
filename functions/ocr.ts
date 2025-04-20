@@ -7,9 +7,10 @@ export const handler: Handler = async (event) => {
   // Configurar headers CORS
   const corsHeaders = {
     'Access-Control-Allow-Origin': 'https://handsheet.netlify.app',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Credentials': 'true'
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Max-Age': '86400' // 24 horas
   };
 
   // Manejar preflight requests
