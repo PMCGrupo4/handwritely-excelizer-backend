@@ -13,7 +13,7 @@ const corsHeaders = {
 };
 
 // Función para manejar las peticiones OPTIONS
-const handleOptions = async (event: HandlerEvent, context: HandlerContext): Promise<HandlerResponse> => {
+const handleOptions = async (): Promise<HandlerResponse> => {
   return {
     statusCode: 204,
     headers: corsHeaders,
@@ -24,7 +24,7 @@ const handleOptions = async (event: HandlerEvent, context: HandlerContext): Prom
 export const handler: Handler = async (event: HandlerEvent, context: HandlerContext): Promise<HandlerResponse> => {
   // Manejar preflight requests
   if (event.httpMethod === 'OPTIONS') {
-    return handleOptions(event, {} as any);
+    return handleOptions();
   }
 
   // Verificar que sea una petición POST
