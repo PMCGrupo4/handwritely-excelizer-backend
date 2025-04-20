@@ -7,6 +7,7 @@
   directory = "functions"
   node_bundler = "esbuild"
   external_node_modules = ["tesseract.js", "xlsx"]
+  timeout = 30
 
 [build.environment]
   NODE_VERSION = "18"
@@ -17,28 +18,48 @@
   to = "/.netlify/functions/ocr"
   status = 200
   force = true
-  headers = { Access-Control-Allow-Origin = "https://handsheet.netlify.app", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Headers = "*", Access-Control-Allow-Credentials = "true" }
+  headers = { 
+    Access-Control-Allow-Origin = "https://handsheet.netlify.app",
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS",
+    Access-Control-Allow-Headers = "Content-Type, Authorization",
+    Access-Control-Allow-Credentials = "true"
+  }
 
 [[redirects]]
   from = "/api/commands/ocr"
   to = "/.netlify/functions/ocr"
   status = 200
   force = true
-  headers = { Access-Control-Allow-Origin = "https://handsheet.netlify.app", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Headers = "*", Access-Control-Allow-Credentials = "true" }
+  headers = { 
+    Access-Control-Allow-Origin = "https://handsheet.netlify.app",
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS",
+    Access-Control-Allow-Headers = "Content-Type, Authorization",
+    Access-Control-Allow-Credentials = "true"
+  }
 
 [[redirects]]
   from = "/health"
   to = "/.netlify/functions/health"
   status = 200
   force = true
-  headers = { Access-Control-Allow-Origin = "https://handsheet.netlify.app", Access-Control-Allow-Methods = "GET, OPTIONS", Access-Control-Allow-Headers = "*", Access-Control-Allow-Credentials = "true" }
+  headers = { 
+    Access-Control-Allow-Origin = "https://handsheet.netlify.app",
+    Access-Control-Allow-Methods = "GET, OPTIONS",
+    Access-Control-Allow-Headers = "Content-Type, Authorization",
+    Access-Control-Allow-Credentials = "true"
+  }
 
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
   force = true
-  headers = { Access-Control-Allow-Origin = "https://handsheet.netlify.app", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Headers = "*", Access-Control-Allow-Credentials = "true" }
+  headers = { 
+    Access-Control-Allow-Origin = "https://handsheet.netlify.app",
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS",
+    Access-Control-Allow-Headers = "Content-Type, Authorization",
+    Access-Control-Allow-Credentials = "true"
+  }
 
 [[redirects]]
   from = "/*"
@@ -46,4 +67,9 @@
   status = 200
   force = true
   methods = ["OPTIONS"]
-  headers = { Access-Control-Allow-Origin = "https://handsheet.netlify.app", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Headers = "*", Access-Control-Allow-Credentials = "true" } 
+  headers = { 
+    Access-Control-Allow-Origin = "https://handsheet.netlify.app",
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS",
+    Access-Control-Allow-Headers = "Content-Type, Authorization",
+    Access-Control-Allow-Credentials = "true"
+  } 
