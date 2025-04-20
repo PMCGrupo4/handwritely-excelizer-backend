@@ -5,9 +5,10 @@ import { supabase } from './supabase';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
   'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
-  'Access-Control-Max-Age': '86400'
+  'Access-Control-Max-Age': '86400',
+  'Content-Type': 'application/json'
 };
 
 export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> => {
@@ -25,17 +26,14 @@ export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResp
     console.log('OCR: Handling OPTIONS request for CORS preflight');
     return {
       statusCode: 204, // No content for OPTIONS
-      headers: {
-        ...corsHeaders,
-        'Content-Length': '0',
-        'Content-Type': 'text/plain'
-      },
+      headers: corsHeaders,
       body: ''
     };
   }
 
   // Verificar que sea una petición POST
   if (event.httpMethod !== 'POST') {
+    console.log(`OCR: Method ${event.httpMethod} not allowed`);
     return {
       statusCode: 405,
       headers: corsHeaders,
@@ -51,6 +49,7 @@ export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResp
 
     // Obtener la imagen del cuerpo de la petición
     if (!event.body) {
+      console.log('OCR: No request body provided');
       return {
         statusCode: 400,
         headers: corsHeaders,
@@ -58,10 +57,22 @@ export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResp
       };
     }
 
-    const body = JSON.parse(event.body);
+    let body;
+    try {
+      body = JSON.parse(event.body);
+    } catch (error) {
+      console.error('OCR: Error parsing JSON body:', error);
+      return {
+        statusCode: 400,
+        headers: corsHeaders,
+        body: JSON.stringify({ error: 'Invalid JSON in request body' })
+      };
+    }
+
     const imageBase64 = body.image;
 
     if (!imageBase64) {
+      console.log('OCR: No image provided in request body');
       return {
         statusCode: 400,
         headers: corsHeaders,
@@ -118,6 +129,7 @@ export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResp
       };
     }
 
+    console.log('OCR request completed successfully');
     return {
       statusCode: 200,
       headers: corsHeaders,

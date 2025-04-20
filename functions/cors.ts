@@ -14,13 +14,22 @@ export const handler: Handler = async (event) => {
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Max-Age': '86400',
-    'Content-Type': 'text/plain',
-    'Content-Length': '0'
+    'Content-Type': 'application/json'
   };
 
+  // Para solicitudes OPTIONS, devolver 204
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 204,
+      headers,
+      body: ''
+    };
+  }
+
+  // Para otras solicitudes, redirigir a la función correspondiente
   return {
-    statusCode: 204, // No content is expected in a preflight response
+    statusCode: 200,
     headers,
-    body: ''
+    body: JSON.stringify({ message: 'CORS preflight response completed' })
   };
 }; 
