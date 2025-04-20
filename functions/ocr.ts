@@ -7,8 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
   'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
-  'Access-Control-Max-Age': '86400',
-  'Content-Type': 'application/json'
+  'Access-Control-Max-Age': '86400'
 };
 
 export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> => {
@@ -44,7 +43,8 @@ export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResp
   try {
     console.log('Received request:', {
       headers: event.headers,
-      body: event.body ? 'Body present' : 'No body'
+      bodyLength: event.body ? event.body.length : 0,
+      hasBody: !!event.body
     });
 
     // Obtener la imagen del cuerpo de la petición
@@ -82,8 +82,21 @@ export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResp
 
     console.log('Processing image...');
     
+    // Verificar el tamaño de la imagen (aproximado)
+    const approxSizeKB = Math.round(imageBase64.length * 0.75 / 1024);
+    console.log(`Approximate image size: ${approxSizeKB}KB`);
+    
+    if (approxSizeKB > 5000) {
+      console.log(`Image too large (${approxSizeKB}KB), may cause timeout`);
+      // Procesamos de todos modos, pero lo registramos
+    }
+    
     // Convertir base64 a buffer
-    const imageBuffer = Buffer.from(imageBase64.split(',')[1], 'base64');
+    let imageDataParts = imageBase64.split(',');
+    const imageBuffer = Buffer.from(
+      imageDataParts.length > 1 ? imageDataParts[1] : imageBase64, 
+      'base64'
+    );
 
     // Inicializar worker de Tesseract
     console.log('Initializing Tesseract worker...');
@@ -106,42 +119,62 @@ export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResp
     const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
     const excelBase64 = excelBuffer.toString('base64');
 
-    // Guardar en Supabase
-    console.log('Saving to Supabase...');
-    const { data, error } = await supabase
-      .from('ocr_results')
-      .insert([
-        { 
-          text,
-          excel_file: excelBase64,
-          user_id: body.userId
-        }
-      ])
-      .select()
-      .single();
+    // Guardar en Supabase (si es posible)
+    let saveResult: { saved: boolean; id?: any; error?: string } = { saved: false };
+    try {
+      console.log('Saving to Supabase...');
+      const { data, error } = await supabase
+        .from('ocr_results')
+        .insert([
+          { 
+            text,
+            excel_file: excelBase64,
+            user_id: body.userId
+          }
+        ])
+        .select()
+        .single();
 
-    if (error) {
-      console.error('Error saving to Supabase:', error);
-      return {
-        statusCode: 500,
-        headers: corsHeaders,
-        body: JSON.stringify({ error: 'Error saving results' })
-      };
+      if (error) {
+        console.error('Error saving to Supabase:', error);
+        // Continuamos sin error fatal, solo se registra
+        saveResult = { saved: false, error: error.message };
+      } else {
+        saveResult = { saved: true, id: data.id };
+      }
+    } catch (supabaseError: any) {
+      console.error('Exception saving to Supabase:', supabaseError);
+      saveResult = { saved: false, error: supabaseError.message };
+      // Continuamos sin error fatal
     }
 
     console.log('OCR request completed successfully');
     return {
       statusCode: 200,
-      headers: corsHeaders,
-      body: JSON.stringify({ success: true, data })
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+        success: true, 
+        text,
+        saveResult
+      })
     };
 
   } catch (error: any) {
     console.error('Error processing request:', error);
     return {
       statusCode: 500,
-      headers: corsHeaders,
-      body: JSON.stringify({ error: 'Internal server error', details: error.message })
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ 
+        error: 'Internal server error', 
+        details: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      })
     };
   }
 }; 

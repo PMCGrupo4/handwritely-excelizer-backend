@@ -13,12 +13,12 @@ export const handler: Handler = async (event) => {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Max-Age': '86400',
-    'Content-Type': 'application/json'
+    'Access-Control-Max-Age': '86400'
   };
 
-  // Para solicitudes OPTIONS, devolver 204
+  // Para solicitudes OPTIONS, siempre devolver 204 No Content
   if (event.httpMethod === 'OPTIONS') {
+    console.log('Respondiendo a solicitud OPTIONS con 204');
     return {
       statusCode: 204,
       headers,
