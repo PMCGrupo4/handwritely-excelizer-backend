@@ -22,9 +22,9 @@ export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResp
   
   // Handle OPTIONS request for CORS preflight
   if (event.httpMethod === 'OPTIONS') {
-    console.log('Handling OPTIONS request for CORS preflight');
+    console.log('OCR: Handling OPTIONS request for CORS preflight');
     return {
-      statusCode: 200, // OK status for OPTIONS
+      statusCode: 204, // No content for OPTIONS
       headers: {
         ...corsHeaders,
         'Content-Length': '0',

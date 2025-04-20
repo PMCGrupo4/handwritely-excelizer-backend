@@ -1,26 +1,26 @@
 import { Handler } from '@netlify/functions';
 
 export const handler: Handler = async (event) => {
-  // Allow all origins for development
+  console.log('CORS handler called:', {
+    method: event.httpMethod,
+    path: event.path,
+    headers: event.headers,
+    origin: event.headers.origin || event.headers.Origin
+  });
+
+  // Set CORS headers for response
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Max-Age': '86400',
+    'Content-Type': 'text/plain',
+    'Content-Length': '0'
   };
 
-  // Return success response for OPTIONS preflight
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers,
-      body: '',
-    };
-  }
-
   return {
-    statusCode: 200,
+    statusCode: 204, // No content is expected in a preflight response
     headers,
-    body: JSON.stringify({ message: 'CORS ok' }),
+    body: ''
   };
 }; 
