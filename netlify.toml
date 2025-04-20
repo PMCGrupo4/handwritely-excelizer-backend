@@ -31,8 +31,15 @@
   force = true
 
 [[redirects]]
-  from = "/*"
-  to = "/.netlify/functions/:splat"
+  from = "/api/commands/ocr"
+  to = "/.netlify/functions/ocr"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/commands/ocr"
+  to = "/.netlify/functions/ocr"
   status = 200
   force = true
   methods = ["OPTIONS"]
+  headers = {Access-Control-Allow-Origin = "https://handsheet.netlify.app", Access-Control-Allow-Methods = "POST, OPTIONS", Access-Control-Allow-Headers = "Content-Type", Access-Control-Allow-Credentials = "true", Access-Control-Max-Age = "86400"}
