@@ -20,9 +20,9 @@ export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResp
     referer: event.headers.referer || event.headers.Referer
   });
   
-  // Handle OPTIONS request for CORS preflight
+  // Handle OPTIONS request for CORS preflight - primera línea de defensa
   if (event.httpMethod === 'OPTIONS') {
-    console.log('OCR: Handling OPTIONS request for CORS preflight');
+    console.log('OCR: Handling OPTIONS request directly in OCR function');
     return {
       statusCode: 204, // No content for OPTIONS
       headers: corsHeaders,

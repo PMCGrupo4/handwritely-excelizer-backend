@@ -12,13 +12,30 @@
   NODE_VERSION = "18"
   NPM_VERSION = "9"
 
-# Handle OPTIONS requests differently
+# Handle OPTIONS for specific routes first
+[[redirects]]
+  from = "/api/commands/ocr"
+  to = "/.netlify/functions/cors"
+  status = 204
+  force = true
+  methods = ["OPTIONS"]
+  headers = {Access-Control-Allow-Origin = "*", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With"}
+
+# Handle OPTIONS requests generally
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/cors"
   status = 204
   force = true
   methods = ["OPTIONS"]
+  headers = {Access-Control-Allow-Origin = "*", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With"}
+
+# Regular API requests for OCR
+[[redirects]]
+  from = "/api/commands/ocr"
+  to = "/.netlify/functions/ocr"
+  status = 200
+  force = true
   headers = {Access-Control-Allow-Origin = "*", Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS", Access-Control-Allow-Headers = "Content-Type, Authorization, X-Requested-With"}
 
 # Regular API requests
