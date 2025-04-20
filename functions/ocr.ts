@@ -11,8 +11,9 @@ const corsHeaders = {
 };
 
 export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> => {
-  // Handle OPTIONS request
+  // Handle OPTIONS request for CORS preflight
   if (event.httpMethod === 'OPTIONS') {
+    console.log('Handling OPTIONS request for CORS preflight');
     return {
       statusCode: 204, // No content for OPTIONS
       headers: corsHeaders,
@@ -115,7 +116,7 @@ export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResp
     return {
       statusCode: 500,
       headers: corsHeaders,
-      body: JSON.stringify({ error: 'Internal server error' })
+      body: JSON.stringify({ error: 'Internal server error', details: error.message })
     };
   }
 }; 
