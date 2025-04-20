@@ -11,6 +11,34 @@ dotenv.config();
 type Document = protos.google.cloud.documentai.v1.IDocument;
 type Entity = protos.google.cloud.documentai.v1.Document.IEntity;
 
+// Interfaz para resultados OCR
+export interface OcrResult {
+  receipt?: {
+    items: Array<{
+      name: string;
+      quantity: number;
+      price: number;
+      subtotal: number;
+    }>;
+    total: number;
+    currency: string;
+    date: string;
+    merchant: {
+      name: string;
+    };
+  };
+  metadata?: {
+    confidence: number;
+    pages: any[];
+    processing: {
+      processor: string | undefined;
+      timestamp: string;
+    };
+  };
+  rawText: string;
+  user_id?: string;
+}
+
 /**
  * OCR Service using Google Document AI
  */
@@ -25,20 +53,58 @@ export class OcrService {
     this.location = process.env.GOOGLE_PROCESSOR_LOCATION || 'us';
     this.processorId = process.env.GOOGLE_PROCESSOR_ID;
     
-    // Parse credentials from environment variable
-    let credentials;
-    try {
-      credentials = JSON.parse(process.env.GOOGLE_CLOUD_CREDENTIALS || '{}');
-    } catch (error) {
-      console.error('Error parsing GOOGLE_CLOUD_CREDENTIALS:', error);
-      throw new Error('Invalid GOOGLE_CLOUD_CREDENTIALS format');
+    let authOptions: any = {};
+    
+    // Priorizar credenciales JSON directamente en variable de entorno para Netlify
+    if (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON) {
+      try {
+        const credentials = JSON.parse(process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON);
+        authOptions = {
+          credentials,
+          scopes: ['https://www.googleapis.com/auth/cloud-platform']
+        };
+        console.log('Using Google credentials from environment variable JSON');
+      } catch (error) {
+        console.error('Error parsing credentials JSON from environment:', error);
+      }
+    }
+    // Fallback: intentar usar credenciales desde un archivo
+    else if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      const credentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+      
+      // Si es una ruta relativa, resolverla
+      if (credentialsPath.startsWith('./') || credentialsPath.startsWith('../')) {
+        const resolvedPath = path.resolve(process.cwd(), credentialsPath);
+        console.log(`Using Google credentials from file: ${resolvedPath}`);
+        
+        if (fs.existsSync(resolvedPath)) {
+          authOptions = {
+            keyFilename: resolvedPath,
+            scopes: ['https://www.googleapis.com/auth/cloud-platform']
+          };
+        } else {
+          console.error(`Credentials file not found at: ${resolvedPath}`);
+        }
+      } else {
+        // Usar la ruta tal cual
+        authOptions = {
+          keyFilename: credentialsPath,
+          scopes: ['https://www.googleapis.com/auth/cloud-platform']
+        };
+      }
+    } 
+    // Fallback final: autenticación por defecto
+    else {
+      console.log('No explicit credentials provided, using default authentication');
+      authOptions = {
+        auth: new GoogleAuth({
+          scopes: ['https://www.googleapis.com/auth/cloud-platform']
+        })
+      };
     }
     
-    // Initialize the client with credentials
-    this.client = new DocumentProcessorServiceClient({
-      credentials,
-      scopes: ['https://www.googleapis.com/auth/cloud-platform']
-    });
+    // Inicializar el cliente
+    this.client = new DocumentProcessorServiceClient(authOptions);
     
     console.log('OCR Service initialized with project:', this.projectId);
   }
