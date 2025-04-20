@@ -6,11 +6,20 @@ import { supabase } from './supabase';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
   'Access-Control-Max-Age': '86400'
 };
 
 export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> => {
+  // Log request information for debugging
+  console.log('OCR function received request:', {
+    method: event.httpMethod,
+    path: event.path,
+    headers: event.headers,
+    origin: event.headers.origin || event.headers.Origin,
+    referer: event.headers.referer || event.headers.Referer
+  });
+  
   // Handle OPTIONS request for CORS preflight
   if (event.httpMethod === 'OPTIONS') {
     console.log('Handling OPTIONS request for CORS preflight');
