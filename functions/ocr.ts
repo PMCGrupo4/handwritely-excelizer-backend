@@ -4,7 +4,7 @@ import * as XLSX from 'xlsx';
 import { supabase } from './supabase';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': 'https://handsheet.netlify.app',
+  'Access-Control-Allow-Origin': 'https://handsheet.netlify.app/',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Credentials': 'true',
