@@ -13,15 +13,6 @@ const corsHeaders = {
   'Vary': 'Origin'
 };
 
-// Función para manejar las peticiones OPTIONS
-const handleOptions = async (): Promise<HandlerResponse> => {
-  return {
-    statusCode: 204,
-    headers: corsHeaders,
-    body: ''
-  };
-};
-
 export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> => {
   // Manejar preflight requests
   if (event.httpMethod === 'OPTIONS') {
