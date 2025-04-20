@@ -5,12 +5,10 @@ import { supabase } from './supabase';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': 'https://handsheet.netlify.app',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Credentials': 'true',
-  'Access-Control-Max-Age': '86400',
-  'Content-Type': 'application/json',
-  'Vary': 'Origin'
+  'Access-Control-Max-Age': '86400'
 };
 
 export const handler: Handler = async (event: HandlerEvent): Promise<HandlerResponse> => {
