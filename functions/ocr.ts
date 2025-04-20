@@ -1,26 +1,30 @@
-import { Handler } from '@netlify/functions';
+import { Handler, HandlerEvent, HandlerContext, HandlerResponse } from '@netlify/functions';
 import { createWorker } from 'tesseract.js';
 import * as XLSX from 'xlsx';
 import { supabase } from './supabase';
 
-export const handler: Handler = async (event) => {
-  // Configurar headers CORS
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': 'https://handsheet.netlify.app',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Credentials': 'true',
-    'Access-Control-Max-Age': '86400',
-    'Vary': 'Origin'
-  };
+const corsHeaders = {
+  'Access-Control-Allow-Origin': 'https://handsheet.netlify.app',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Credentials': 'true',
+  'Access-Control-Max-Age': '86400',
+  'Vary': 'Origin'
+};
 
+// Función para manejar las peticiones OPTIONS
+const handleOptions = async (event: HandlerEvent, context: HandlerContext): Promise<HandlerResponse> => {
+  return {
+    statusCode: 204,
+    headers: corsHeaders,
+    body: ''
+  };
+};
+
+export const handler: Handler = async (event: HandlerEvent, context: HandlerContext): Promise<HandlerResponse> => {
   // Manejar preflight requests
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 204,
-      headers: corsHeaders,
-      body: ''
-    };
+    return handleOptions(event, {} as any);
   }
 
   // Verificar que sea una petición POST
@@ -103,40 +107,22 @@ export const handler: Handler = async (event) => {
       return {
         statusCode: 500,
         headers: corsHeaders,
-        body: JSON.stringify({ error: 'Error saving results to database' })
+        body: JSON.stringify({ error: 'Error saving results' })
       };
     }
 
-    if (!data) {
-      return {
-        statusCode: 500,
-        headers: corsHeaders,
-        body: JSON.stringify({ error: 'Could not get result ID' })
-      };
-    }
-
-    console.log('Request completed successfully');
     return {
       statusCode: 200,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        text,
-        excelBase64,
-        id: data.id
-      })
+      headers: corsHeaders,
+      body: JSON.stringify({ success: true, data })
     };
+
   } catch (error) {
     console.error('Error processing request:', error);
     return {
       statusCode: 500,
       headers: corsHeaders,
-      body: JSON.stringify({ 
-        error: 'Error processing image',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      })
+      body: JSON.stringify({ error: 'Internal server error' })
     };
   }
 }; 
