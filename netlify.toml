@@ -6,6 +6,7 @@
 [functions]
   directory = "functions"
   node_bundler = "esbuild"
+  external_node_modules = ["tesseract.js", "xlsx"]
 
 [build.environment]
   NODE_VERSION = "18"
@@ -27,8 +28,4 @@
   from = "/api/commands/ocr"
   to = "/.netlify/functions/ocr"
   status = 200
-  force = true
-
-[functions]
-  node_bundler = "esbuild"
-  external_node_modules = ["tesseract.js", "xlsx"] 
+  force = true 
