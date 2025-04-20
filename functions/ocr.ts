@@ -2,7 +2,6 @@ import { Handler } from '@netlify/functions';
 import { createWorker } from 'tesseract.js';
 import * as XLSX from 'xlsx';
 import { supabase } from './supabase';
-import { AppError } from './shared/error';
 
 export const handler: Handler = async (event) => {
   // Configurar headers CORS
