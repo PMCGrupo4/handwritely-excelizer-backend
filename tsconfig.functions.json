@@ -1,26 +1,15 @@
 {
+  "extends": "./tsconfig.json",
   "compilerOptions": {
-    "target": "es2018",
+    "outDir": "functions-dist",
+    "rootDir": "functions",
     "module": "commonjs",
-    "lib": ["es2018", "esnext.asynciterable"],
-    "declaration": true,
-    "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "noImplicitThis": true,
-    "alwaysStrict": true,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": false,
-    "inlineSourceMap": true,
-    "inlineSources": true,
-    "experimentalDecorators": true,
-    "strictPropertyInitialization": false,
+    "target": "es2018",
+    "lib": ["es2018"],
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "outDir": "functions"
+    "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/functions/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["functions/**/*.ts"],
+  "exclude": ["node_modules"]
 } 

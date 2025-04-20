@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabaseAdmin } from './supabase';
 
 /**
  * Initialize Supabase Storage bucket for receipt images
@@ -6,7 +6,7 @@ import { supabase } from './supabase';
 export async function initializeStorage() {
   try {
     // Check if bucket exists
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    const { data: buckets, error: listError } = await supabaseAdmin.storage.listBuckets();
     
     if (listError) throw listError;
     
@@ -14,7 +14,7 @@ export async function initializeStorage() {
     
     if (!bucketExists) {
       // Create bucket if it doesn't exist
-      const { data, error } = await supabase.storage.createBucket('receipt-images', {
+      const { data, error } = await supabaseAdmin.storage.createBucket('receipt-images', {
         public: true,
         fileSizeLimit: 5242880, // 5MB
         allowedMimeTypes: ['image/jpeg', 'image/png', 'image/jpg']
@@ -25,7 +25,7 @@ export async function initializeStorage() {
     }
     
     // Set up bucket policies
-    const { error: policyError } = await supabase.rpc('create_storage_policy', {
+    const { error: policyError } = await supabaseAdmin.rpc('create_storage_policy', {
       bucket_name: 'receipt-images',
       policy_name: 'Users can upload their own images',
       policy_definition: '(auth.uid() = owner)',
