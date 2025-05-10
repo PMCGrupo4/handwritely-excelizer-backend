@@ -93,7 +93,6 @@ export class CommandController {
         .from('commands')
         .insert({
           user_id: userId,
-          image_url: imageUrl,
           items: rows,
           total,
           status: 'completed'
@@ -145,11 +144,6 @@ export class CommandController {
 
       if (command.user_id !== userId) {
         return res.status(403).json({ error: 'Not authorized to delete this command' });
-      }
-
-      // Delete image from storage if it exists
-      if (command.image_url) {
-        await this.storageService.deleteImage(command.image_url);
       }
 
       // Delete command from database

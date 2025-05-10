@@ -5,7 +5,6 @@ import { v4 as uuidv4 } from 'uuid';
 export interface Command {
   id: string;
   user_id: string;
-  image_url: string;
   items: Array<{
     name: string;
     quantity: number;
