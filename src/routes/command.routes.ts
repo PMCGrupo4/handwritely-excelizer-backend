@@ -22,4 +22,7 @@ router.post('/', upload.single('image'), commandController.createCommand);
 // Delete a command
 router.delete('/:id', commandController.deleteCommand);
 
+// Edit a command
+router.put('/:id', commandController.editCommand);
+
 export const commandRoutes = router; 

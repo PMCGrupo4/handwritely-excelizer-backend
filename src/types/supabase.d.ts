@@ -26,6 +26,10 @@ declare module '@supabase/supabase-js' {
         order: (column: string, options?: { ascending?: boolean }) => any;
       };
       insert: (data: any) => Promise<{ data: any; error: any }>;
+      update: (data: any) => {
+        eq: (column: string, value: any) => Promise<{ data: any; error: any }>;
+        match: (criteria: any) => Promise<{ data: any; error: any }>;
+      };
       delete: () => {
         eq: (column: string, value: any) => Promise<{ data: any; error: any }>;
       };

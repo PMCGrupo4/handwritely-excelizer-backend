@@ -168,6 +168,61 @@ export class CommandController {
   }
 
   /**
+   * Edit a command
+   */
+  async editCommand(req: Request, res: Response) {
+    try {
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const { id } = req.params;
+      const { items, total, status } = req.body;
+
+      // Check if command exists and belongs to user
+      const { data: command, error: fetchError } = await supabase
+        .from('commands')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      if (!command) {
+        return res.status(404).json({ error: 'Command not found' });
+      }
+
+      if (command.user_id !== userId) {
+        return res.status(403).json({ error: 'Not authorized to edit this command' });
+      }
+
+      // Update command in database
+      const { error: updateError } = await supabase
+        .from('commands')
+        .update({ items, total, status })
+        .eq('id', id);
+
+      if (updateError) throw updateError;
+      
+      // Get the updated command
+      const { data: updatedData, error: fetchUpdatedError } = await supabase
+        .from('commands')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (fetchUpdatedError) throw fetchUpdatedError;
+
+      return res.status(200).json({ message: 'Command updated successfully', data: updatedData });
+    } catch (error) {
+      console.error('Error editing command:', error);
+      return res.status(500).json({ error: 'Failed to edit command' });
+    }
+  }
+
+  /**
    * Parse OCR text into command items
    */
   private parseCommandText(text: string): CommandItem[] {
