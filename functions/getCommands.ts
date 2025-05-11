@@ -33,6 +33,38 @@ export const handler: Handler = async (event: HandlerEvent) => {
   }
 
   try {
+    // También permitir GET para facilitar las pruebas
+    if (event.httpMethod === 'GET') {
+      console.log('Processing GET request (test mode)');
+      
+      // Simplemente devolver algunas comandas de prueba
+      return {
+        statusCode: 200,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          success: true, 
+          data: [
+            {
+              id: '1234',
+              user_id: 'test-user',
+              created_at: new Date().toISOString(),
+              formatted_data: {
+                receipt: {
+                  items: [
+                    { name: 'Producto 1', price: 1000, quantity: 2, subtotal: 2000 }
+                  ],
+                  total: 2000
+                }
+              }
+            }
+          ]
+        })
+      };
+    }
+    
     // POST para obtener comandas por userId
     if (event.httpMethod === 'POST') {
       console.log('Processing POST request to get commands by userId');
@@ -69,42 +101,57 @@ export const handler: Handler = async (event: HandlerEvent) => {
       }
 
       console.log(`Fetching commands for user: ${userId}`);
+      console.log('Supabase URL:', process.env.SUPABASE_URL);
       
-      // Consultar la tabla ocr_results para este usuario
-      const { data, error } = await supabase
-        .from('ocr_results')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+      try {
+        // Consultar la tabla ocr_results para este usuario
+        const { data, error } = await supabase
+          .from('ocr_results')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching commands from Supabase:', error);
+        if (error) {
+          console.error('Error fetching commands from Supabase:', error);
+          return {
+            statusCode: 500,
+            headers: corsHeaders,
+            body: JSON.stringify({ 
+              error: 'Error fetching commands', 
+              details: error.message,
+              code: error.code
+            })
+          };
+        }
+
+        console.log(`Found ${data?.length || 0} commands for user ${userId}`);
+        
+        return {
+          statusCode: 200,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ 
+            success: true, 
+            data: data || []
+          })
+        };
+      } catch (supabaseError: any) {
+        console.error('Exception during Supabase query:', supabaseError);
         return {
           statusCode: 500,
           headers: corsHeaders,
           body: JSON.stringify({ 
-            error: 'Error fetching commands', 
-            details: error.message 
+            error: 'Supabase query error', 
+            details: supabaseError.message,
+            stack: process.env.NODE_ENV === 'development' ? supabaseError.stack : undefined
           })
         };
       }
-
-      console.log(`Found ${data?.length || 0} commands for user ${userId}`);
-      
-      return {
-        statusCode: 200,
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ 
-          success: true, 
-          data: data || []
-        })
-      };
     }
     
-    // Si no es POST, retornar error
+    // Si no es GET ni POST, retornar error
     return {
       statusCode: 405,
       headers: corsHeaders,
